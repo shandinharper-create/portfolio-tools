@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LedgerPro</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    #root { height: 100%; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0f0f14; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #2e2e40; border-radius: 4px; border: 2px solid #0f0f14; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a4a68; }
+    ::-webkit-scrollbar-corner { background: #0f0f14; }
+    * { scrollbar-width: thin; scrollbar-color: #2e2e40 #0f0f14; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo, useEffect, useCallback, useRef } = React;
+
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+const currency = (n) =>
+  new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 }).format(n||0);
+const currencyFull = (n) =>
+  new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", minimumFractionDigits:2 }).format(n||0);
+const pct = (n, d) => d ? `${((n/d)*100).toFixed(1)}%` : "—";
+const today = () => new Date().toISOString().slice(0,10);
+const uid = () => Date.now() + Math.random();
+
+const EXPENSE_CATS = ["Mortgage","Insurance","Taxes","Repairs","CapEx","Renovation","Utilities","Management","HOA","Vacancy","Legal","Accounting","Other"];
+const PROP_TYPES   = ["Single Family","Duplex","Triplex","Quadplex","Multi-Family","Condo","Commercial","Land"];
+const STATUSES     = ["Occupied","Vacant","Partially Occupied","Under Renovation"];
+const PAY_METHODS  = ["Check","Credit Card","Debit Card","Cash","Zelle","ACH / Bank Transfer","Other"];
+
+// ── seed data ─────────────────────────────────────────────────────────────────
+const SEED = {
+  properties: [
+    { id:"p1",  name:"1842 Harlem Ave",  type:"Single Family", units:1, address:"1842 Harlem Ave, Baltimore MD 21217",             purchasePrice:185000, marketValue:212000, llc:"Brick & Mortar LLC",       status:"Occupied", notes:"",                                                         reserveGoal:10000, currentReserve:-10000 },
+    { id:"p2",  name:"307 E Fayette St", type:"Duplex",        units:2, address:"307 E Fayette St, Baltimore MD 21202",            purchasePrice:220000, marketValue:268000, llc:"East Side Holdings LLC",   status:"Occupied", notes:"",                                                         reserveGoal:10000, currentReserve:0 },
+    { id:"p3",  name:"914 N Bond St",    type:"Single Family", units:1, address:"914 N Bond St, Baltimore MD 21205",               purchasePrice:95000,  marketValue:130000, llc:"Bond Street Props LLC",    status:"Vacant",   notes:"Needs roof repair before relisting",                       reserveGoal:10000, currentReserve:0 },
+    { id:"p716",name:"716 E 35th St",    type:"Single Family", units:1, address:"716 East 35th Street, Waverly, Baltimore, MD 21218", purchasePrice:0,  marketValue:0,      llc:"",                         status:"Vacant",   notes:"Imported from Income/Expense Statement Jan 2025 – Mar 2026", reserveGoal:10000, currentReserve:0 },
+  ],
+  expenses: [
+    { id:"e1", propertyId:"p1", category:"Mortgage", amount:1050, date:"2026-02-01", note:"Monthly P&I", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer", capitalExpense:false },
+    { id:"e2", propertyId:"p1", category:"Insurance", amount:95,   date:"2026-02-01", note:"Monthly escrow", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer", capitalExpense:false },
+    { id:"e3", propertyId:"p1", category:"Repairs",   amount:320,  date:"2026-01-15", note:"HVAC belt + filter", recurring:false, vendor:"City HVAC", paymentMethod:"Check", capitalExpense:false },
+    { id:"e4", propertyId:"p2", category:"Mortgage",  amount:1280, date:"2026-02-01", note:"Monthly P&I", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer", capitalExpense:false },
+    { id:"e5", propertyId:"p2", category:"Insurance", amount:145,  date:"2026-02-01", note:"Monthly escrow", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer", capitalExpense:false },
+    { id:"e6", propertyId:"p2", category:"Repairs",   amount:850,  date:"2026-01-28", note:"Unit 2 plumbing leak", recurring:false, vendor:"Joe's Plumbing", paymentMethod:"Check", capitalExpense:false },
+    { id:"e7", propertyId:"p3", category:"Mortgage",  amount:610,  date:"2026-02-01", note:"Monthly P&I", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer", capitalExpense:false },
+    { id:"e8", propertyId:"p3", category:"Taxes",     amount:210,  date:"2026-01-20", note:"Q1 property tax", recurring:false, vendor:"Baltimore City", paymentMethod:"Check", capitalExpense:false },
+  ],
+  income: [
+    { id:"i1", propertyId:"p1", amount:1450, date:"2026-02-01", note:"Monthly rent", tenant:"Williams Family" },
+    { id:"i2", propertyId:"p2", amount:950,  date:"2026-02-01", note:"Unit 1 rent",  tenant:"Marcus T." },
+    { id:"i3", propertyId:"p2", amount:875,  date:"2026-02-03", note:"Unit 2 rent",  tenant:"Sandra R." },
+  ],
+  expenses716: [
+    { id:"p716e1",  propertyId:"p716", category:"Other",   amount:470.00,   date:"2025-07-01", note:"Auto and Travel",               recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e2",  propertyId:"p716", category:"Repairs", amount:60.00,    date:"2025-07-01", note:"Cleaning and Maintenance",       recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e3",  propertyId:"p716", category:"Repairs", amount:626.00,   date:"2025-07-01", note:"Repairs",                       recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e4",  propertyId:"p716", category:"Other",   amount:470.00,   date:"2025-08-01", note:"Auto and Travel",               recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e5",  propertyId:"p716", category:"Other",   amount:13195.00, date:"2025-08-01", note:"Other",                         recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e6",  propertyId:"p716", category:"Repairs", amount:4178.00,  date:"2025-08-01", note:"Repairs",                       recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e7",  propertyId:"p716", category:"Other",   amount:1990.90,  date:"2025-09-01", note:"Auto and Travel",               recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e8",  propertyId:"p716", category:"Repairs", amount:500.00,   date:"2025-10-01", note:"Cleaning and Maintenance",       recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e9",  propertyId:"p716", category:"Other",   amount:10720.00, date:"2025-10-01", note:"Other",                         recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e10", propertyId:"p716", category:"Repairs", amount:2670.00,  date:"2025-10-01", note:"Repairs",                       recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e11", propertyId:"p716", category:"Legal",   amount:125.00,   date:"2025-11-01", note:"Legal and Other Professional Fees", recurring:true,  vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e12", propertyId:"p716", category:"Legal",   amount:125.00,   date:"2025-12-01", note:"Legal and Other Professional Fees", recurring:true,  vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e13", propertyId:"p716", category:"Legal",   amount:125.00,   date:"2026-01-01", note:"Legal and Other Professional Fees", recurring:true,  vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e14", propertyId:"p716", category:"Other",   amount:900.00,   date:"2026-01-01", note:"Other",                         recurring:false, vendor:"", paymentMethod:"", capitalExpense:false },
+    { id:"p716e15", propertyId:"p716", category:"Legal",   amount:125.00,   date:"2026-02-01", note:"Legal and Other Professional Fees", recurring:true,  vendor:"", paymentMethod:"", capitalExpense:false },
+  ],
+};
+
+// ── Server storage hook (window.storage — syncs with Portfolio Command) ───────
+// ── Dual storage: localStorage (works in downloaded HTML) +
+//    window.storage (syncs with Portfolio Command inside Claude.ai)
+function useLS(key, fallback) {
+  const [val, setVal] = useState(fallback);
+  const [ready, setReady] = useState(false);
+  const valRef = useRef(fallback);
+
+  // On mount: try localStorage first (instant, synchronous), then window.storage
+  useEffect(() => {
+    let loaded = false;
+
+    // 1) Try localStorage immediately (works in any browser, downloaded or not)
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        valRef.current = parsed;
+        setVal(parsed);
+        loaded = true;
+      }
+    } catch (e) { /* localStorage blocked (some iframes) */ }
+
+    // 2) Also try window.storage (Claude.ai only) — may override localStorage if newer
+    (async () => {
+      try {
+        if (typeof window.storage !== "undefined" && window.storage) {
+          const result = await window.storage.get(key);
+          if (result && result.value !== undefined) {
+            const parsed = JSON.parse(result.value);
+            valRef.current = parsed;
+            setVal(parsed);
+            loaded = true;
+            // Mirror into localStorage so the file works offline too
+            try { localStorage.setItem(key, result.value); } catch {}
+          }
+        }
+      } catch {}
+      if (!loaded) {
+        // Write the fallback into both stores so future loads find it
+        const str = JSON.stringify(fallback);
+        try { localStorage.setItem(key, str); } catch {}
+        try {
+          if (typeof window.storage !== "undefined" && window.storage)
+            await window.storage.set(key, str);
+        } catch {}
+      }
+      setReady(true);
+    })();
+  }, [key]);
+
+  const setter = useCallback((newValOrFn) => {
+    // Compute next synchronously — never stale, never a race condition
+    const next = typeof newValOrFn === "function" ? newValOrFn(valRef.current) : newValOrFn;
+    valRef.current = next;
+    setVal(next);
+
+    const str = JSON.stringify(next);
+
+    // Write to localStorage immediately (synchronous, reliable)
+    try { localStorage.setItem(key, str); } catch {}
+
+    // Also write to window.storage (Claude.ai sync) on next tick
+    setTimeout(() => {
+      try {
+        if (typeof window.storage !== "undefined" && window.storage) {
+          window.storage.set(key, str)
+            .catch(err => console.warn("LedgerPro: window.storage write failed for", key, err?.message));
+        }
+      } catch {}
+    }, 0);
+  }, [key]);
+
+  return [val, setter, ready, valRef];
+}
+
+// ── shared styles ─────────────────────────────────────────────────────────────
+const INPUT = { width:"100%", background:"#1c1c22", border:"1px solid #2a2a35", borderRadius:6, padding:"10px 12px", color:"#f0ede8", fontFamily:"inherit", fontSize:13, outline:"none" };
+
+function btn(variant, size) {
+  return {
+    display:"inline-flex", alignItems:"center", gap:6,
+    padding: size==="sm" ? "6px 11px" : "9px 16px",
+    borderRadius:7, border:"none", cursor:"pointer",
+    fontFamily:"'Outfit',sans-serif", fontWeight:700,
+    fontSize: size==="sm" ? 10 : 11,
+    letterSpacing:"0.07em", textTransform:"uppercase",
+    background: variant==="gold" ? "#c9a96e" : variant==="ghost" ? "#18181f" : "transparent",
+    color:      variant==="gold" ? "#0b0b0e"  : variant==="danger" ? "#d96b6b" : "#eeebf0",
+    border:     variant==="ghost" ? "1px solid #252530" : variant==="danger" ? "1px solid rgba(217,107,107,0.35)" : "none",
+  };
+}
+
+// ── sub-components ────────────────────────────────────────────────────────────
+function Modal({ title, onClose, children, wide }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.82)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <div style={{ background:"#141418", border:"1px solid #2a2a35", borderRadius:14, width:"100%", maxWidth: wide ? 720 : 560, maxHeight:"88vh", display:"flex", flexDirection:"column", boxShadow:"0 24px 64px rgba(0,0,0,0.7)" }}>
+        {/* Sticky header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"18px 24px", borderBottom:"1px solid #2a2a35", flexShrink:0, position:"sticky", top:0, background:"#141418", zIndex:1, borderRadius:"14px 14px 0 0" }}>
+          <span style={{ fontWeight:800, fontSize:15 }}>{title}</span>
+          <button onClick={onClose} style={{ background:"#1c1c22", border:"1px solid #2a2a35", borderRadius:6, color:"#7a7a8a", width:28, height:28, fontSize:14, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+        </div>
+        {/* Scrollable body */}
+        <div style={{ padding:24, overflowY:"auto", flex:1, scrollbarWidth:"thin", scrollbarColor:"#2e2e40 #0f0f14" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <label style={{ display:"block", fontSize:9, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#7a7a8a", marginBottom:6, fontFamily:"'IBM Plex Mono',monospace" }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function ReserveMeter({ name, current, goal, onEdit, compact }) {
+  const raw    = current || 0;
+  const target = goal || 10000;
+  const needed = target - raw;
+  const pctNum = Math.min(Math.max((raw / target) * 100, 0), 100);
+  const isNeg  = raw < 0;
+  const isFull = raw >= target;
+  const barColor = isFull ? "#5cb87a" : isNeg ? "#d96b6b" : pctNum >= 75 ? "#c9a96e" : pctNum >= 40 ? "#e0a060" : "#d96b6b";
+  const barWidth = isFull ? "100%" : (pctNum.toFixed(1) + "%");
+
+  const statusText = isFull
+    ? "Reserve fully funded"
+    : isNeg
+      ? (currency(Math.abs(raw)) + " below zero — needs " + currency(target - raw) + " total")
+      : (currency(needed) + " to go — " + pctNum.toFixed(0) + "% funded");
+
+  if (compact) {
+    return (
+      <div style={{ marginTop:6 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+          <span style={{ fontSize:10, color:"#9a98a8", fontFamily:"'IBM Plex Mono',monospace" }}>Reserve</span>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:11, fontWeight:700, fontFamily:"'IBM Plex Mono',monospace", color:barColor }}>{currency(raw)}</span>
+            <span style={{ fontSize:9, color:"#5a5868", fontFamily:"'IBM Plex Mono',monospace" }}>/ {currency(target)}</span>
+            {onEdit && (
+              <button onClick={function(e){ e.stopPropagation(); onEdit(); }} style={{ background:"none", border:"1px solid #2a2a35", borderRadius:4, color:"#9a98a8", fontSize:9, padding:"2px 6px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
+                Edit
+              </button>
+            )}
+          </div>
+        </div>
+        <div style={{ height:5, background:"#1c1c22", borderRadius:3, overflow:"hidden" }}>
+          <div style={{ height:"100%", width:barWidth, background:barColor, borderRadius:3, transition:"width 0.8s" }} />
+        </div>
+        <div style={{ fontSize:9, color:"#5a5868", fontFamily:"'IBM Plex Mono',monospace", marginTop:3 }}>{statusText}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background:"#111116", border:("1px solid " + (isNeg ? "rgba(217,107,107,0.3)" : isFull ? "rgba(92,184,122,0.3)" : "#1e1e26")), borderRadius:10, padding:"18px 20px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
+        <div>
+          <div style={{ fontSize:9, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8", fontFamily:"'IBM Plex Mono',monospace", marginBottom:4 }}>Cash Reserve</div>
+          {name && <div style={{ fontSize:12, fontWeight:700, color:"#eeebf0" }}>{name}</div>}
+        </div>
+        <div style={{ textAlign:"right" }}>
+          <div style={{ fontSize:22, fontWeight:900, letterSpacing:"-0.03em", color:barColor }}>{currency(raw)}</div>
+          <div style={{ fontSize:10, color:"#5a5868", fontFamily:"'IBM Plex Mono',monospace" }}>goal: {currency(target)}</div>
+        </div>
+      </div>
+      <div style={{ height:10, background:"#1c1c22", borderRadius:5, overflow:"hidden", marginBottom:10 }}>
+        <div style={{ height:"100%", width:barWidth, background:("linear-gradient(90deg," + barColor + "99," + barColor + ")"), borderRadius:5, transition:"width 1s", boxShadow:("0 0 8px " + barColor + "66") }} />
+      </div>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ fontSize:11, color: isFull ? "#5cb87a" : isNeg ? "#d96b6b" : "#9a98a8" }}>{statusText}</div>
+        {onEdit && (
+          <button onClick={onEdit} style={{ background:"#1c1c22", border:"1px solid #2a2a35", borderRadius:6, color:"#9a98a8", fontSize:10, padding:"5px 10px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+            Update
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── main app ──────────────────────────────────────────────────────────────────
+
+// ── File Attachments component ───────────────────────────────────────────────
+function FileAttachments({ recordId, recordType }) {
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(null); // { name, data, mimeType }
+  const storageKey = `lp:files:${recordType}:${recordId}`;
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!recordId) { setLoading(false); return; }
+    (async () => {
+      try {
+        const result = await window.storage.get(storageKey);
+        if (result?.value) setFiles(JSON.parse(result.value));
+      } catch { /* none yet */ }
+      setLoading(false);
+    })();
+  }, [storageKey]);
+
+  const persist = async (updated) => {
+    setFiles(updated);
+    await window.storage.set(storageKey, JSON.stringify(updated)).catch(console.error);
+  };
+
+  const handleUpload = (e) => {
+    const picked = Array.from(e.target.files);
+    if (!picked.length) return;
+    setUploading(true);
+    let done = 0;
+    const newFiles = [];
+    picked.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        newFiles.push({
+          id: Date.now() + Math.random().toString(36).slice(2),
+          name: file.name,
+          size: file.size,
+          mimeType: file.type,
+          data: ev.target.result, // base64 data URL
+          uploadedAt: new Date().toISOString().slice(0, 10),
+        });
+        done++;
+        if (done === picked.length) {
+          const updated = [...files, ...newFiles];
+          await persist(updated);
+          setUploading(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const removeFile = async (id) => {
+    await persist(files.filter(f => f.id !== id));
+  };
+
+  const fmtSize = (bytes) => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  };
+
+  const getIcon = (mimeType, name) => {
+    if (mimeType?.startsWith("image/")) return "🖼";
+    if (mimeType === "application/pdf" || name?.endsWith(".pdf")) return "📄";
+    if (mimeType?.includes("spreadsheet") || name?.endsWith(".xlsx") || name?.endsWith(".csv")) return "📊";
+    if (mimeType?.includes("word") || name?.endsWith(".docx")) return "📝";
+    return "📎";
+  };
+
+  const isImage = (f) => f.mimeType?.startsWith("image/");
+
+  return (
+    <div style={{ marginTop:20, borderTop:"1px solid #1e1e26", paddingTop:16 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+        <label style={{ fontSize:9, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#7a7a8a", fontFamily:"'IBM Plex Mono',monospace" }}>
+          Attachments {files.length > 0 && <span style={{ color:"#c9a96e" }}>({files.length})</span>}
+        </label>
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          style={{ background:"transparent", border:"1px solid #2a2a35", borderRadius:6, color:"#9a98a8", fontSize:10, padding:"4px 10px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+          {uploading ? "Uploading..." : "+ Attach File"}
+        </button>
+        <input ref={inputRef} type="file" multiple accept="image/*,.pdf,.csv,.xlsx,.docx,.doc,.txt" onChange={handleUpload} style={{ display:"none" }} />
+      </div>
+
+      {loading && <div style={{ fontSize:11, color:"#5a5868" }}>Loading attachments...</div>}
+
+      {!loading && files.length === 0 && (
+        <div
+          onClick={() => inputRef.current?.click()}
+          style={{ border:"1px dashed #2a2a35", borderRadius:8, padding:"20px", textAlign:"center", cursor:"pointer", transition:"border-color 0.15s" }}
+          onMouseEnter={e => e.currentTarget.style.borderColor="#c9a96e66"}
+          onMouseLeave={e => e.currentTarget.style.borderColor="#2a2a35"}>
+          <div style={{ fontSize:20, marginBottom:6 }}>📎</div>
+          <div style={{ fontSize:11, color:"#5a5868" }}>Click to attach receipts, invoices, leases, or photos</div>
+          <div style={{ fontSize:9, color:"#3a3a48", marginTop:4, fontFamily:"'IBM Plex Mono',monospace" }}>PDF · Images · CSV · Excel · Word</div>
+        </div>
+      )}
+
+      {files.length > 0 && (
+        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          {files.map(f => (
+            <div key={f.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", background:"#111116", border:"1px solid #1e1e26", borderRadius:7 }}>
+              <span style={{ fontSize:16, flexShrink:0 }}>{getIcon(f.mimeType, f.name)}</span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:12, color:"#eeebf0", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.name}</div>
+                <div style={{ fontSize:9, color:"#5a5868", fontFamily:"'IBM Plex Mono',monospace", marginTop:2 }}>{fmtSize(f.size)} · {f.uploadedAt}</div>
+              </div>
+              <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                {isImage(f) && (
+                  <button onClick={() => setPreview(f)} style={{ background:"transparent", border:"1px solid #2a2a35", borderRadius:5, color:"#9a98a8", fontSize:9, padding:"3px 8px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em" }}>View</button>
+                )}
+                <a href={f.data} download={f.name} style={{ textDecoration:"none" }}>
+                  <button style={{ background:"transparent", border:"1px solid #2a2a35", borderRadius:5, color:"#9a98a8", fontSize:9, padding:"3px 8px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em" }}>⬇</button>
+                </a>
+                <button onClick={() => removeFile(f.id)} style={{ background:"transparent", border:"1px solid rgba(217,107,107,0.3)", borderRadius:5, color:"#d96b6b", fontSize:9, padding:"3px 8px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em" }}>✕</button>
+              </div>
+            </div>
+          ))}
+          <div
+            onClick={() => inputRef.current?.click()}
+            style={{ border:"1px dashed #2a2a35", borderRadius:6, padding:"8px", textAlign:"center", cursor:"pointer", fontSize:10, color:"#5a5868", transition:"all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor="#c9a96e66"; e.currentTarget.style.color="#c9a96e"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor="#2a2a35"; e.currentTarget.style.color="#5a5868"; }}>
+            + Add another file
+          </div>
+        </div>
+      )}
+
+      {/* Image preview overlay */}
+      {preview && (
+        <div onClick={() => setPreview(null)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.92)", zIndex:2000, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ maxWidth:"90vw", maxHeight:"90vh", position:"relative" }}>
+            <button onClick={() => setPreview(null)} style={{ position:"absolute", top:-14, right:-14, background:"#1c1c22", border:"1px solid #2a2a35", borderRadius:"50%", width:28, height:28, color:"#9a98a8", fontSize:14, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1 }}>✕</button>
+            <img src={preview.data} alt={preview.name} style={{ maxWidth:"100%", maxHeight:"85vh", borderRadius:8, display:"block" }} />
+            <div style={{ textAlign:"center", marginTop:8, fontSize:11, color:"#9a98a8" }}>{preview.name}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function App() {
+  const [properties, setProperties, propsReady, propsRef] = useLS("pc:properties", SEED.properties);
+  const [expenses,   setExpenses,   expReady,   expRef]   = useLS("pc:expenses",   [...SEED.expenses, ...SEED.expenses716]);
+  const [income,     setIncome,     incReady,   incRef]   = useLS("pc:income",     SEED.income);
+  const [saveStatus, setSaveStatus] = useState("saved"); // "saved" | "saving" | "error"
+  const saveTimerRef = useRef(null);
+
+  // Wrap setters to show save feedback (optimistic — hook handles actual storage write)
+  const withSaveFeedback = useCallback((setter) => (...args) => {
+    setSaveStatus("saving");
+    setter(...args);
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => setSaveStatus("saved"), 1200);
+  }, []);
+
+  const setPropertiesTracked = useCallback(withSaveFeedback(setProperties), [setProperties]);
+  const setExpensesTracked   = useCallback(withSaveFeedback(setExpenses),   [setExpenses]);
+  const setIncomeTracked     = useCallback(withSaveFeedback(setIncome),     [setIncome]);
+
+  const [tab,        setTab]        = useState("dashboard");
+  const [modal,      setModal]      = useState(null);
+  const [editId,     setEditId]     = useState(null);
+  const [selPropId,  setSelPropId]  = useState(null);
+  const [filterProp, setFilterProp] = useState("all");
+  const [reportRange,  setReportRange]  = useState("month");
+  const [reportProp,   setReportProp]   = useState("all");
+  const [cFrom, setCFrom] = useState("2026-01-01");
+  const [cTo,   setCTo]   = useState(today());
+  const [reserveTarget, setReserveTarget] = useState({ propId:"", goal:10000, current:0 });
+
+  const blankP = { name:"", type:"Single Family", units:1, address:"", purchasePrice:"", marketValue:"", llc:"", status:"Occupied", notes:"", reserveGoal:10000, currentReserve:0 };
+  const blankE = { propertyId:properties[0]?.id||"", category:"Repairs", amount:"", date:today(), note:"", recurring:false, vendor:"", paymentMethod:"", capitalExpense:false };
+  const blankI = { propertyId:properties[0]?.id||"", amount:"", date:today(), note:"", tenant:"" };
+  const [pF, setPF] = useState(blankP);
+  const [eF, setEF] = useState(blankE);
+  const [iF, setIF] = useState(blankI);
+
+  // ── computed ──
+  const totalValue    = useMemo(() => properties.reduce((s,p) => s+p.marketValue, 0), [properties]);
+  const totalEquity   = useMemo(() => properties.reduce((s,p) => s+(p.marketValue-p.purchasePrice), 0), [properties]);
+  const totalIncome   = useMemo(() => income.reduce((s,i) => s+i.amount, 0), [income]);
+  const totalExpenses = useMemo(() => expenses.reduce((s,e) => s+e.amount, 0), [expenses]);
+  const noi = totalIncome - totalExpenses;
+
+  const getPropName = (id) => properties.find(p=>p.id===id)?.name || "Unknown";
+
+  const propNOI = (pid) => {
+    const inc = income.filter(i=>i.propertyId===pid).reduce((s,i)=>s+i.amount,0);
+    const exp = expenses.filter(e=>e.propertyId===pid).reduce((s,e)=>s+e.amount,0);
+    return inc - exp;
+  };
+
+  const reportDates = useMemo(() => {
+    if (reportRange==="month")   return { from:"2026-02-01", to:"2026-02-28" };
+    if (reportRange==="quarter") return { from:"2026-01-01", to:"2026-03-31" };
+    if (reportRange==="year")    return { from:"2026-01-01", to:"2026-12-31" };
+    return { from:cFrom, to:cTo };
+  }, [reportRange, cFrom, cTo]);
+
+  const filtered = useMemo(() => {
+    const { from, to } = reportDates;
+    const mp = (id) => reportProp==="all" || id===reportProp;
+    const md = (d)  => d>=from && d<=to;
+    return {
+      expenses: expenses.filter(e => mp(e.propertyId) && md(e.date)),
+      income:   income.filter(i   => mp(i.propertyId) && md(i.date)),
+    };
+  }, [expenses, income, reportDates, reportProp]);
+
+  const rInc  = filtered.income.reduce((s,i)=>s+i.amount,0);
+  const rExp  = filtered.expenses.reduce((s,e)=>s+e.amount,0);
+  const rNOI  = rInc - rExp;
+
+  const expByCat = useMemo(() => {
+    const m = {};
+    filtered.expenses.forEach(e => { m[e.category] = (m[e.category]||0) + e.amount; });
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  }, [filtered]);
+
+  // ── CRUD ──
+  const saveProp = () => {
+    const p = { ...pF, id:editId||("p"+uid()), units:+pF.units, purchasePrice:+pF.purchasePrice, marketValue:+pF.marketValue, reserveGoal:+pF.reserveGoal, currentReserve:+pF.currentReserve };
+    if (editId) {
+      setPropertiesTracked(prev => prev.map(x => x.id === editId ? p : x));
+    } else {
+      setPropertiesTracked(prev => [...prev, p]);
+    }
+    setModal(null); setEditId(null); setPF(blankP);
+  };
+  const saveExp = () => {
+    const e = { ...eF, id:editId||("e"+uid()), amount:+eF.amount };
+    if (editId) {
+      setExpensesTracked(prev => prev.map(x => x.id === editId ? e : x));
+    } else {
+      setExpensesTracked(prev => [...prev, e]);
+    }
+    setModal(null); setEditId(null); setEF(blankE);
+  };
+  const saveInc = () => {
+    const i = { ...iF, id:editId||("i"+uid()), amount:+iF.amount };
+    if (editId) {
+      setIncomeTracked(prev => prev.map(x => x.id === editId ? i : x));
+    } else {
+      setIncomeTracked(prev => [...prev, i]);
+    }
+    setModal(null); setEditId(null); setIF(blankI);
+  };
+  const deleteProp = (id) => {
+    setPropertiesTracked(prev => prev.filter(p => p.id !== id));
+    setExpensesTracked(prev => prev.filter(e => e.propertyId !== id));
+    setIncomeTracked(prev => prev.filter(i => i.propertyId !== id));
+    setSelPropId(null);
+  };
+  const delExp = (id) => setExpensesTracked(prev => prev.filter(e => e.id !== id));
+  const delIncTracked = (id) => setIncomeTracked(prev => prev.filter(i => i.id !== id));
+
+  const openEditProp = (p) => { setPF({...p}); setEditId(p.id); setModal("prop"); };
+  const openEditExp  = (e) => { setEF({...e}); setEditId(e.id); setModal("exp"); };
+  const openEditInc  = (i) => { setIF({...i}); setEditId(i.id); setModal("inc"); };
+
+  const selProp   = selPropId ? properties.find(p=>p.id===selPropId) : null;
+  const selExp    = selProp ? expenses.filter(e=>e.propertyId===selProp.id) : [];
+  const selInc    = selProp ? income.filter(i=>i.propertyId===selProp.id)   : [];
+  const selNOI    = selProp ? selInc.reduce((s,i)=>s+i.amount,0) - selExp.reduce((s,e)=>s+e.amount,0) : 0;
+  const selEquity = selProp ? selProp.marketValue - selProp.purchasePrice : 0;
+
+  function statusBadge(s) {
+    const map = { "Occupied":"#5cb87a","Vacant":"#d96b6b","Partially Occupied":"#c9a96e","Under Renovation":"#5b8fd4" };
+    const col = map[s]||"#9a98a8";
+    return <span style={{ display:"inline-block", padding:"3px 8px", borderRadius:4, fontSize:9, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", fontFamily:"'IBM Plex Mono',monospace", background:(col+"22"), color:col, border:("1px solid "+col+"44") }}>{s}</span>;
+  }
+
+  function catBadge(c) {
+    return <span style={{ display:"inline-block", padding:"3px 8px", borderRadius:4, fontSize:9, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", fontFamily:"'IBM Plex Mono',monospace", background:"#c9a96e22", color:"#c9a96e", border:"1px solid #c9a96e44" }}>{c}</span>;
+  }
+
+  const thSt = { fontSize:9, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#5a5868", textAlign:"left", padding:"0 12px 10px", fontFamily:"'IBM Plex Mono',monospace" };
+  const tdSt = (x) => ({ padding:"11px 12px", fontSize:12, borderTop:"1px solid #1e1e26", verticalAlign:"middle", ...x });
+
+  const CARD  = { background:"#111116", border:"1px solid #1e1e26", borderRadius:10, padding:22, marginBottom:14 };
+  const PAGE  = { padding:"32px 36px" };
+  const TBL   = { width:"100%", borderCollapse:"collapse" };
+
+  function StatCard({ label, value, hint, color }) {
+    const c = color || "#c9a96e";
+    return (
+      <div style={{ background:"#111116", border:"1px solid #1e1e26", borderRadius:10, padding:"18px 20px", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, height:2, background:("linear-gradient(90deg,"+c+",transparent)") }} />
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:"0.14em", textTransform:"uppercase", color:"#5a5868", fontFamily:"'IBM Plex Mono',monospace", marginBottom:8 }}>{label}</div>
+        <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-0.03em", color:c }}>{value}</div>
+        {hint && <div style={{ fontSize:10, color:"#9a98a8", marginTop:4, fontFamily:"'IBM Plex Mono',monospace" }}>{hint}</div>}
+      </div>
+    );
+  }
+
+  // ── DASHBOARD ──────────────────────────────────────────────────────────────
+  const Dashboard = () => (
+    <div style={PAGE}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:28 }}>
+        <div>
+          <div style={{ fontSize:24, fontWeight:900, letterSpacing:"-0.025em" }}>Portfolio Overview</div>
+          <div style={{ fontSize:11, color:"#9a98a8", marginTop:4, fontFamily:"'IBM Plex Mono',monospace" }}>February 2026 — {properties.length} properties</div>
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <button style={btn("ghost")} onClick={()=>{setEF(blankE);setEditId(null);setModal("exp");}}>+ Expense</button>
+          <button style={btn("ghost")} onClick={()=>{setIF(blankI);setEditId(null);setModal("inc");}}>+ Income</button>
+          <button style={btn("gold")}  onClick={()=>{setPF(blankP);setEditId(null);setModal("prop");}}>+ Property</button>
+        </div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14, marginBottom:20 }}>
+        <StatCard label="Portfolio Value"   value={currency(totalValue)}    hint={properties.length+" properties"} />
+        <StatCard label="Total Equity"      value={currency(totalEquity)}   hint={pct(totalEquity,totalValue)+" of value"} />
+        <StatCard label="Monthly Income"    value={currency(totalIncome)}   hint={income.length+" payments"}   color="#5cb87a" />
+        <StatCard label="Net Cash Flow"     value={currency(noi)}           hint={currency(totalExpenses)+" in expenses"} color={noi>=0?"#5cb87a":"#d96b6b"} />
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+        <div style={CARD}>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:16 }}>
+            <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8" }}>Properties + Reserves</span>
+            <button style={btn("ghost","sm")} onClick={()=>setTab("properties")}>View All</button>
+          </div>
+          {properties.map(p => {
+            const n = propNOI(p.id);
+            return (
+              <div key={p.id} style={{ padding:"12px 0", borderBottom:"1px solid #1e1e26" }}>
+                <div onClick={()=>{setSelPropId(p.id);setTab("properties");}} style={{ display:"flex", justifyContent:"space-between", cursor:"pointer", marginBottom:6 }}>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:13 }}>{p.name}</div>
+                    <div style={{ fontSize:10, color:"#5a5868", fontFamily:"'IBM Plex Mono',monospace", marginTop:2 }}>{p.llc}</div>
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:12, fontWeight:700, fontFamily:"'IBM Plex Mono',monospace", color:n>=0?"#5cb87a":"#d96b6b" }}>{currency(n)}/mo</div>
+                    <div style={{ marginTop:3 }}>{statusBadge(p.status)}</div>
+                  </div>
+                </div>
+                <ReserveMeter
+                  compact
+                  current={p.currentReserve||0}
+                  goal={p.reserveGoal||10000}
+                  onEdit={()=>{ setReserveTarget({propId:p.id, goal:p.reserveGoal||10000, current:p.currentReserve||0}); setModal("reserve"); }}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={CARD}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8", marginBottom:16 }}>Recent Transactions</div>
+          {[
+            ...expenses.slice(-4).map(e=>({...e,_t:"exp"})),
+            ...income.slice(-2).map(i=>({...i,_t:"inc"}))
+          ].sort((a,b)=>b.date.localeCompare(a.date)).map(t => (
+            <div key={t.id} style={{ display:"flex", justifyContent:"space-between", padding:"9px 0", borderBottom:"1px solid #1e1e26" }}>
+              <div>
+                <div style={{ fontSize:12, fontWeight:600 }}>{t.note||t.category||"Rent"}</div>
+                <div style={{ fontSize:10, color:"#5a5868", fontFamily:"'IBM Plex Mono',monospace", marginTop:1 }}>{t.date} — {getPropName(t.propertyId)}</div>
+              </div>
+              <span style={{ color:t._t==="inc"?"#5cb87a":"#d96b6b", fontWeight:700, fontSize:12, fontFamily:"'IBM Plex Mono',monospace" }}>
+                {t._t==="inc"?"+":"-"}{currencyFull(t.amount)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── PROPERTIES ─────────────────────────────────────────────────────────────
+  const Properties = () => {
+    if (selProp) {
+      return (
+        <div style={PAGE}>
+          <button onClick={()=>setSelPropId(null)} style={{ background:"none", border:"none", color:"#9a98a8", fontFamily:"'Outfit',sans-serif", fontSize:11, fontWeight:600, letterSpacing:"0.06em", textTransform:"uppercase", cursor:"pointer", marginBottom:22 }}>
+            Back to Properties
+          </button>
+
+          <div style={{ ...CARD, marginBottom:14 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+              <div>
+                <div style={{ fontSize:22, fontWeight:900, letterSpacing:"-0.02em", marginBottom:4 }}>{selProp.name}</div>
+                <div style={{ fontSize:11, color:"#9a98a8", fontFamily:"'IBM Plex Mono',monospace" }}>{selProp.address}</div>
+                <div style={{ display:"flex", gap:8, marginTop:12, flexWrap:"wrap" }}>
+                  {statusBadge(selProp.status)}
+                  {[selProp.type, selProp.llc, selProp.units+" unit"+(selProp.units>1?"s":"")].map(t => (
+                    <span key={t} style={{ display:"inline-block", padding:"3px 8px", borderRadius:4, fontSize:9, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", fontFamily:"'IBM Plex Mono',monospace", background:"#c9a96e22", color:"#c9a96e", border:"1px solid #c9a96e44" }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button style={btn("ghost","sm")} onClick={()=>openEditProp(selProp)}>Edit</button>
+                <button style={btn("danger","sm")} onClick={()=>deleteProp(selProp.id)}>Delete</button>
+              </div>
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginTop:18, paddingTop:18, borderTop:"1px solid #1e1e26" }}>
+              {[
+                { l:"Purchase Price", v:currency(selProp.purchasePrice), c:"#eeebf0" },
+                { l:"Market Value",   v:currency(selProp.marketValue),   c:"#c9a96e" },
+                { l:"Equity",         v:currency(selEquity),             c:selEquity>=0?"#c9a96e":"#d96b6b" },
+                { l:"Monthly Income", v:currency(selInc.reduce((s,i)=>s+i.amount,0)), c:"#5cb87a" },
+                { l:"Net Cash Flow",  v:currency(selNOI),                c:selNOI>=0?"#5cb87a":"#d96b6b" },
+              ].map(s => (
+                <div key={s.l}>
+                  <div style={{ fontSize:9, color:"#5a5868", textTransform:"uppercase", letterSpacing:"0.1em", fontFamily:"'IBM Plex Mono',monospace" }}>{s.l}</div>
+                  <div style={{ fontSize:15, fontWeight:800, marginTop:4, color:s.c }}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+            {selProp.notes && <div style={{ marginTop:14, fontSize:12, color:"#9a98a8", fontStyle:"italic" }}>Note: {selProp.notes}</div>}
+          </div>
+
+          <div style={{ marginBottom:14 }}>
+            <ReserveMeter
+              name={selProp.name}
+              current={selProp.currentReserve||0}
+              goal={selProp.reserveGoal||10000}
+              onEdit={()=>{ setReserveTarget({propId:selProp.id, goal:selProp.reserveGoal||10000, current:selProp.currentReserve||0}); setModal("reserve"); }}
+            />
+          </div>
+
+          <div style={CARD}>
+            <FileAttachments recordId={selProp.id} recordType="property" />
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+
+            {/* ── Income Card ── */}
+            <div style={CARD}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14 }}>
+                <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8" }}>Income</span>
+                <button style={btn("ghost","sm")} onClick={()=>{setIF({...blankI,propertyId:selProp.id});setEditId(null);setModal("inc");}}>+ Add</button>
+              </div>
+              {selInc.length===0
+                ? <div style={{ textAlign:"center", padding:30, color:"#5a5868" }}>No income logged</div>
+                : (
+                  <table style={TBL}>
+                    <thead><tr>{["Date","Tenant","Note","Amount",""].map(h=><th key={h} style={thSt}>{h}</th>)}</tr></thead>
+                    <tbody>
+                      {selInc.map(i => (
+                        <tr key={i.id}
+                          onClick={()=>openEditInc(i)}
+                          style={{ cursor:"pointer" }}
+                          onMouseEnter={ev=>ev.currentTarget.style.background="#13131e"}
+                          onMouseLeave={ev=>ev.currentTarget.style.background=""}>
+                          <td style={tdSt({fontFamily:"'IBM Plex Mono',monospace",fontSize:10})}>{i.date}</td>
+                          <td style={tdSt({})}>{i.tenant||"—"}</td>
+                          <td style={tdSt({color:"#9a98a8",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{i.note||"—"}</td>
+                          <td style={tdSt({color:"#5cb87a",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"})}>+{currencyFull(i.amount)}</td>
+                          <td style={tdSt({})} onClick={ev=>ev.stopPropagation()}>
+                            <button style={btn("danger","sm")} onClick={()=>delIncTracked(i.id)}>✕</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )
+              }
+            </div>
+
+            {/* ── Expenses Card ── */}
+            <div style={CARD}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14 }}>
+                <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8" }}>Expenses</span>
+                <button style={btn("ghost","sm")} onClick={()=>{setEF({...blankE,propertyId:selProp.id});setEditId(null);setModal("exp");}}>+ Add</button>
+              </div>
+              {selExp.length===0
+                ? <div style={{ textAlign:"center", padding:30, color:"#5a5868" }}>No expenses logged</div>
+                : (
+                  <table style={TBL}>
+                    <thead><tr>{["Date","Category","Note","Amount",""].map(h=><th key={h} style={thSt}>{h}</th>)}</tr></thead>
+                    <tbody>
+                      {selExp.map(e => (
+                        <tr key={e.id}
+                          onClick={()=>openEditExp(e)}
+                          style={{ cursor:"pointer" }}
+                          onMouseEnter={ev=>ev.currentTarget.style.background="#13131e"}
+                          onMouseLeave={ev=>ev.currentTarget.style.background=""}>
+                          <td style={tdSt({fontFamily:"'IBM Plex Mono',monospace",fontSize:10})}>{e.date}</td>
+                          <td style={tdSt({})}>{catBadge(e.category)}</td>
+                          <td style={tdSt({color:"#9a98a8",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{e.note||e.vendor||"—"}</td>
+                          <td style={tdSt({color:"#d96b6b",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"})}>-{currencyFull(e.amount)}</td>
+                          <td style={tdSt({})} onClick={ev=>ev.stopPropagation()}>
+                            <button style={btn("danger","sm")} onClick={()=>delExp(e.id)}>✕</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )
+              }
+            </div>
+          </div>        </div>
+      );
+    }
+
+    return (
+      <div style={PAGE}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:28 }}>
+          <div>
+            <div style={{ fontSize:24, fontWeight:900, letterSpacing:"-0.025em" }}>Properties</div>
+            <div style={{ fontSize:11, color:"#9a98a8", marginTop:4, fontFamily:"'IBM Plex Mono',monospace" }}>{properties.length} properties — {currency(totalValue)} portfolio value</div>
+          </div>
+          <button style={btn("gold")} onClick={()=>{setPF(blankP);setEditId(null);setModal("prop");}}>+ Add Property</button>
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))", gap:14 }}>
+          {properties.map(p => {
+            const n  = propNOI(p.id);
+            const eq = p.marketValue - p.purchasePrice;
+            return (
+              <div key={p.id} onClick={()=>setSelPropId(p.id)} style={{ background:"#111116", border:"1px solid "+(selPropId===p.id?"#c9a96e":"#1e1e26"), borderRadius:12, padding:20, cursor:"pointer" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                  <div>
+                    <div style={{ fontSize:15, fontWeight:800, letterSpacing:"-0.01em", marginBottom:3 }}>{p.name}</div>
+                    <div style={{ fontSize:10, color:"#9a98a8", fontFamily:"'IBM Plex Mono',monospace" }}>{p.type} — {p.units} unit{p.units>1?"s":""}</div>
+                  </div>
+                  {statusBadge(p.status)}
+                </div>
+                <div style={{ fontSize:10, color:"#5a5868", fontFamily:"'IBM Plex Mono',monospace", marginTop:6 }}>{p.llc}</div>
+                <div style={{ borderTop:"1px solid #1e1e26", margin:"14px 0" }} />
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                  {[
+                    { l:"Market Value", v:currency(p.marketValue),                                                      c:"#c9a96e" },
+                    { l:"Equity",       v:currency(eq),                                                                  c:eq>=0?"#c9a96e":"#d96b6b" },
+                    { l:"Monthly Inc",  v:currency(income.filter(i=>i.propertyId===p.id).reduce((s,i)=>s+i.amount,0)),  c:"#5cb87a" },
+                    { l:"Cash Flow",    v:currency(n),                                                                   c:n>=0?"#5cb87a":"#d96b6b" },
+                  ].map(s => (
+                    <div key={s.l}>
+                      <div style={{ fontSize:9, color:"#5a5868", textTransform:"uppercase", letterSpacing:"0.1em", fontFamily:"'IBM Plex Mono',monospace" }}>{s.l}</div>
+                      <div style={{ fontSize:14, fontWeight:700, marginTop:3, color:s.c }}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+                <ReserveMeter compact current={p.currentReserve||0} goal={p.reserveGoal||10000} onEdit={()=>{ setReserveTarget({propId:p.id,goal:p.reserveGoal||10000,current:p.currentReserve||0}); setModal("reserve"); }} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // ── EXPENSES ───────────────────────────────────────────────────────────────
+  const Expenses = () => {
+    const [expandedId, setExpandedId] = useState(null);
+    const [rowForm, setRowForm] = useState({});
+    const list = filterProp==="all" ? expenses : expenses.filter(e=>e.propertyId===filterProp);
+
+    const startEdit = (e) => { setExpandedId(e.id); setRowForm({...e}); };
+    const cancelEdit = () => { setExpandedId(null); setRowForm({}); };
+    const commitEdit = () => {
+      const updated = { ...rowForm, amount: +rowForm.amount };
+      setExpensesTracked(prev => prev.map(x => x.id === updated.id ? updated : x));
+      setExpandedId(null);
+      setRowForm({});
+    };
+
+    const RF = (key, type="text", opts) => {
+      if (type === "select") return (
+        <select value={rowForm[key]||""} onChange={e=>setRowForm({...rowForm,[key]:e.target.value})}
+          style={{...INPUT, padding:"5px 8px", fontSize:11, minWidth:opts?.wide?120:90}}>
+          {opts?.items.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      );
+      if (type === "checkbox") return (
+        <input type="checkbox" checked={!!rowForm[key]} onChange={e=>setRowForm({...rowForm,[key]:e.target.checked})}
+          style={{width:14,height:14,cursor:"pointer"}}/>
+      );
+      return (
+        <input type={type} value={rowForm[key]||""} onChange={e=>setRowForm({...rowForm,[key]:e.target.value})}
+          style={{...INPUT, padding:"5px 8px", fontSize:11, minWidth: type==="number" ? 80 : type==="date" ? 120 : 110}}/>
+      );
+    };
+
+    return (
+      <div style={PAGE}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:28 }}>
+          <div>
+            <div style={{ fontSize:24, fontWeight:900, letterSpacing:"-0.025em" }}>Expenses</div>
+            <div style={{ fontSize:11, color:"#9a98a8", marginTop:4, fontFamily:"'IBM Plex Mono',monospace" }}>{currency(list.reduce((s,e)=>s+e.amount,0))} total · {list.length} entries</div>
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <select style={{...INPUT,width:"auto",padding:"9px 14px",fontSize:11,cursor:"pointer"}} value={filterProp} onChange={e=>setFilterProp(e.target.value)}>
+              <option value="all">All Properties</option>
+              {properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <button style={btn("gold")} onClick={()=>{setEF(blankE);setEditId(null);setModal("exp");}}>+ Add Expense</button>
+          </div>
+        </div>
+        <div style={CARD}>
+          {list.length===0
+            ? <div style={{ textAlign:"center", padding:40, color:"#5a5868" }}>No expenses yet.</div>
+            : (
+              <table style={TBL}>
+                <thead>
+                  <tr>{["Date","Property","Category","Vendor","Payment","Note","CapEx","Amount",""].map(h=><th key={h} style={thSt}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {list.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(e => {
+                    const isEditing = expandedId === e.id;
+                    if (isEditing) {
+                      return (
+                        <tr key={e.id} style={{ background:"#16161f", outline:"2px solid #c9a96e44" }}>
+                          <td style={tdSt({})}>{RF("date","date")}</td>
+                          <td style={tdSt({})}>
+                            <select value={rowForm.propertyId||""} onChange={ev=>setRowForm({...rowForm,propertyId:ev.target.value})}
+                              style={{...INPUT,padding:"5px 8px",fontSize:11,minWidth:120}}>
+                              {properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                          </td>
+                          <td style={tdSt({})}>{RF("category","select",{items:EXPENSE_CATS,wide:true})}</td>
+                          <td style={tdSt({})}>{RF("vendor")}</td>
+                          <td style={tdSt({})}>{RF("paymentMethod","select",{items:[""].concat(PAY_METHODS)})}</td>
+                          <td style={tdSt({})}>{RF("note")}</td>
+                          <td style={tdSt({textAlign:"center"})}>{RF("capitalExpense","checkbox")}</td>
+                          <td style={tdSt({})}>{RF("amount","number")}</td>
+                          <td style={tdSt({})}>
+                            <div style={{ display:"flex", gap:5 }}>
+                              <button style={{...btn("gold","sm"),padding:"5px 10px"}} onClick={commitEdit}>✓ Save</button>
+                              <button style={btn("ghost","sm")} onClick={cancelEdit}>✕</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return (
+                      <tr key={e.id} onClick={()=>startEdit(e)}
+                        style={{ cursor:"pointer", transition:"background 0.1s" }}
+                        onMouseEnter={ev=>ev.currentTarget.style.background="#13131e"}
+                        onMouseLeave={ev=>ev.currentTarget.style.background=""}>
+                        <td style={tdSt({fontFamily:"'IBM Plex Mono',monospace",fontSize:10})}>{e.date}</td>
+                        <td style={tdSt({fontSize:12})}>{getPropName(e.propertyId)}</td>
+                        <td style={tdSt({})}>{catBadge(e.category)}</td>
+                        <td style={tdSt({fontSize:12})}>{e.vendor||"—"}</td>
+                        <td style={tdSt({fontSize:11,color:"#9a98a8"})}>{e.paymentMethod||"—"}</td>
+                        <td style={tdSt({color:"#9a98a8"})}>{e.note||"—"}</td>
+                        <td style={tdSt({})}>
+                          {e.capitalExpense
+                            ? <span style={{ fontSize:9, padding:"2px 7px", borderRadius:4, background:"#5b8fd422", color:"#5b8fd4", border:"1px solid #5b8fd444", fontFamily:"'IBM Plex Mono',monospace", fontWeight:700 }}>CAP</span>
+                            : "—"}
+                        </td>
+                        <td style={tdSt({color:"#d96b6b",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"})}>-{currencyFull(e.amount)}</td>
+                        <td style={tdSt({})} onClick={ev=>ev.stopPropagation()}>
+                          <button style={btn("danger","sm")} onClick={()=>delExp(e.id)}>Delete</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )
+          }
+        </div>
+      </div>
+    );
+  };
+
+  // ── INCOME ─────────────────────────────────────────────────────────────────
+  const Income = () => {
+    const [expandedId, setExpandedId] = useState(null);
+    const [rowForm, setRowForm] = useState({});
+    const list = filterProp==="all" ? income : income.filter(i=>i.propertyId===filterProp);
+
+    const startEdit = (i) => { setExpandedId(i.id); setRowForm({...i}); };
+    const cancelEdit = () => { setExpandedId(null); setRowForm({}); };
+    const commitEdit = () => {
+      const updated = { ...rowForm, amount: +rowForm.amount };
+      setIncomeTracked(prev => prev.map(x => x.id === updated.id ? updated : x));
+      setExpandedId(null);
+      setRowForm({});
+    };
+
+    const RF = (key, type="text") => (
+      <input type={type} value={rowForm[key]||""} onChange={e=>setRowForm({...rowForm,[key]:e.target.value})}
+        style={{...INPUT, padding:"5px 8px", fontSize:11, minWidth: type==="number" ? 90 : type==="date" ? 120 : 110}}/>
+    );
+
+    return (
+      <div style={PAGE}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:28 }}>
+          <div>
+            <div style={{ fontSize:24, fontWeight:900, letterSpacing:"-0.025em" }}>Income</div>
+            <div style={{ fontSize:11, color:"#9a98a8", marginTop:4, fontFamily:"'IBM Plex Mono',monospace" }}>{currency(list.reduce((s,i)=>s+i.amount,0))} total · {list.length} entries</div>
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <select style={{...INPUT,width:"auto",padding:"9px 14px",fontSize:11,cursor:"pointer"}} value={filterProp} onChange={e=>setFilterProp(e.target.value)}>
+              <option value="all">All Properties</option>
+              {properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <button style={btn("gold")} onClick={()=>{setIF(blankI);setEditId(null);setModal("inc");}}>+ Add Income</button>
+          </div>
+        </div>
+        <div style={CARD}>
+          {list.length===0
+            ? <div style={{ textAlign:"center", padding:40, color:"#5a5868" }}>No income logged yet.</div>
+            : (
+              <table style={TBL}>
+                <thead>
+                  <tr>{["Date","Property","Tenant","Note","Amount",""].map(h=><th key={h} style={thSt}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {list.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(i => {
+                    const isEditing = expandedId === i.id;
+                    if (isEditing) {
+                      return (
+                        <tr key={i.id} style={{ background:"#16161f", outline:"2px solid #5cb87a44" }}>
+                          <td style={tdSt({})}>{RF("date","date")}</td>
+                          <td style={tdSt({})}>
+                            <select value={rowForm.propertyId||""} onChange={ev=>setRowForm({...rowForm,propertyId:ev.target.value})}
+                              style={{...INPUT,padding:"5px 8px",fontSize:11,minWidth:120}}>
+                              {properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                          </td>
+                          <td style={tdSt({})}>{RF("tenant")}</td>
+                          <td style={tdSt({})}>{RF("note")}</td>
+                          <td style={tdSt({})}>{RF("amount","number")}</td>
+                          <td style={tdSt({})}>
+                            <div style={{ display:"flex", gap:5 }}>
+                              <button style={{...btn("gold","sm"),padding:"5px 10px"}} onClick={commitEdit}>✓ Save</button>
+                              <button style={btn("ghost","sm")} onClick={cancelEdit}>✕</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return (
+                      <tr key={i.id} onClick={()=>startEdit(i)}
+                        style={{ cursor:"pointer", transition:"background 0.1s" }}
+                        onMouseEnter={ev=>ev.currentTarget.style.background="#13131e"}
+                        onMouseLeave={ev=>ev.currentTarget.style.background=""}>
+                        <td style={tdSt({fontFamily:"'IBM Plex Mono',monospace",fontSize:10})}>{i.date}</td>
+                        <td style={tdSt({fontSize:12})}>{getPropName(i.propertyId)}</td>
+                        <td style={tdSt({})}>{i.tenant||"—"}</td>
+                        <td style={tdSt({color:"#9a98a8"})}>{i.note||"—"}</td>
+                        <td style={tdSt({color:"#5cb87a",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"})}>+{currencyFull(i.amount)}</td>
+                        <td style={tdSt({})} onClick={ev=>ev.stopPropagation()}>
+                          <button style={btn("danger","sm")} onClick={()=>delIncTracked(i.id)}>Delete</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )
+          }
+        </div>
+      </div>
+    );
+  };
+
+  // ── REPORTS ────────────────────────────────────────────────────────────────
+  const Reports = () => {
+    const maxCat = expByCat[0]?.[1] || 1;
+    return (
+      <div style={PAGE}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:28 }}>
+          <div>
+            <div style={{ fontSize:24, fontWeight:900, letterSpacing:"-0.025em" }}>P&L Report</div>
+            <div style={{ fontSize:11, color:"#9a98a8", marginTop:4, fontFamily:"'IBM Plex Mono',monospace" }}>{reportDates.from} to {reportDates.to}</div>
+          </div>
+        </div>
+
+        <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:20, flexWrap:"wrap" }}>
+          {["month","quarter","year","custom"].map(r => (
+            <button key={r} onClick={()=>setReportRange(r)} style={{ padding:"7px 14px", borderRadius:6, border:"1px solid "+(reportRange===r?"#c9a96e":"#252530"), background:reportRange===r?"rgba(201,169,110,0.12)":"#18181f", color:reportRange===r?"#c9a96e":"#9a98a8", fontFamily:"'Outfit',sans-serif", fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", cursor:"pointer" }}>
+              {r==="month"?"This Month":r==="quarter"?"This Quarter":r==="year"?"This Year":"Custom"}
+            </button>
+          ))}
+          <select style={{...INPUT,width:"auto",padding:"7px 12px",fontSize:11,cursor:"pointer"}} value={reportProp} onChange={e=>setReportProp(e.target.value)}>
+            <option value="all">All Properties</option>
+            {properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+
+        {reportRange==="custom" && (
+          <div style={{ display:"flex", gap:12, marginBottom:20 }}>
+            <Field label="From"><input type="date" style={INPUT} value={cFrom} onChange={e=>setCFrom(e.target.value)}/></Field>
+            <Field label="To"><input type="date" style={INPUT} value={cTo} onChange={e=>setCTo(e.target.value)}/></Field>
+          </div>
+        )}
+
+        <div style={{ background:"linear-gradient(135deg,rgba(201,169,110,0.12),rgba(201,169,110,0.04))", border:"1px solid rgba(201,169,110,0.3)", borderRadius:10, padding:"20px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
+          <div>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#c9a96e", fontFamily:"'IBM Plex Mono',monospace" }}>Net Operating Income</div>
+            <div style={{ fontSize:12, color:"#9a98a8", marginTop:2, fontFamily:"'IBM Plex Mono',monospace" }}>Gross Income minus Total Expenses</div>
+          </div>
+          <div style={{ fontSize:38, fontWeight:900, letterSpacing:"-0.04em", color:rNOI>=0?"#5cb87a":"#d96b6b" }}>{currencyFull(rNOI)}</div>
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:20 }}>
+          <StatCard label="Gross Income"    value={currency(rInc)}  hint={filtered.income.length+" payments"}  color="#5cb87a" />
+          <StatCard label="Total Expenses"  value={currency(rExp)}  hint={filtered.expenses.length+" entries"} color="#d96b6b" />
+          <StatCard label="Expense Ratio"   value={rInc>0?pct(rExp,rInc):"—"} hint="of gross income" />
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
+          <div style={CARD}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8", marginBottom:16 }}>Expenses by Category</div>
+            {expByCat.length===0
+              ? <div style={{ textAlign:"center", padding:30, color:"#5a5868" }}>No expenses in range</div>
+              : expByCat.map(([cat,amt]) => (
+                <div key={cat} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                  <div style={{ fontSize:10, color:"#9a98a8", width:100, flexShrink:0, fontFamily:"'IBM Plex Mono',monospace" }}>{cat}</div>
+                  <div style={{ flex:1, height:5, background:"#21212a", borderRadius:3, overflow:"hidden" }}>
+                    <div style={{ height:"100%", borderRadius:3, background:"#c9a96e", width:pct(amt,maxCat), transition:"width 0.6s" }} />
+                  </div>
+                  <div style={{ fontSize:11, fontWeight:700, color:"#eeebf0", width:80, textAlign:"right", fontFamily:"'IBM Plex Mono',monospace" }}>{currency(amt)}</div>
+                </div>
+              ))
+            }
+          </div>
+
+          <div style={CARD}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8", marginBottom:16 }}>By Property</div>
+            {properties.map(p => {
+              const pI = filtered.income.filter(i=>i.propertyId===p.id).reduce((s,i)=>s+i.amount,0);
+              const pE = filtered.expenses.filter(e=>e.propertyId===p.id).reduce((s,e)=>s+e.amount,0);
+              const pN = pI - pE;
+              if (!pI && !pE) return null;
+              return (
+                <div key={p.id} style={{ padding:"10px 0", borderBottom:"1px solid #1e1e26" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                    <span style={{ fontSize:12, fontWeight:700 }}>{p.name}</span>
+                    <span style={{ fontSize:12, fontWeight:700, fontFamily:"'IBM Plex Mono',monospace", color:pN>=0?"#5cb87a":"#d96b6b" }}>{currencyFull(pN)}</span>
+                  </div>
+                  <div style={{ display:"flex", gap:16 }}>
+                    <span style={{ fontSize:10, color:"#9a98a8", fontFamily:"'IBM Plex Mono',monospace" }}>In: <span style={{color:"#5cb87a"}}>{currency(pI)}</span></span>
+                    <span style={{ fontSize:10, color:"#9a98a8", fontFamily:"'IBM Plex Mono',monospace" }}>Out: <span style={{color:"#d96b6b"}}>{currency(pE)}</span></span>
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{ display:"flex", justifyContent:"space-between", paddingTop:14 }}>
+              <span style={{ fontSize:11, fontWeight:700, color:"#9a98a8" }}>TOTAL</span>
+              <span style={{ fontSize:14, fontWeight:900, fontFamily:"'IBM Plex Mono',monospace", color:rNOI>=0?"#5cb87a":"#d96b6b" }}>{currencyFull(rNOI)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={CARD}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8", marginBottom:16 }}>All Transactions</div>
+          {[...filtered.expenses.map(e=>({...e,_t:"exp"})), ...filtered.income.map(i=>({...i,_t:"inc"}))]
+            .sort((a,b)=>b.date.localeCompare(a.date))
+            .map(t => (
+              <div key={t.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:"1px solid #1e1e26" }}>
+                <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+                  <span style={{ fontSize:10, fontFamily:"'IBM Plex Mono',monospace", color:"#5a5868", width:82 }}>{t.date}</span>
+                  <span style={{ fontSize:11, color:"#9a98a8" }}>{getPropName(t.propertyId)}</span>
+                  {t._t==="exp" && catBadge(t.category)}
+                  <span style={{ fontSize:12, color:"#9a98a8" }}>{t.note||t.tenant||"—"}</span>
+                </div>
+                <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontWeight:700, fontSize:12, color:t._t==="inc"?"#5cb87a":"#d96b6b" }}>
+                  {t._t==="inc"?"+":"-"}{currencyFull(t.amount)}
+                </span>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    );
+  };
+
+  // ── IMPORT ─────────────────────────────────────────────────────────────────
+  const Import = () => {
+    const [step, setStep] = useState(1);
+    const [dataType, setDataType] = useState("expenses");
+    const [csvHeaders, setCsvHeaders] = useState([]);
+    const [csvRows, setCsvRows] = useState([]);
+    const [mapping, setMapping] = useState({ date:"", amount:"", category:"", note:"", tenant:"", property:"" });
+    const [assignPropId, setAssignPropId] = useState(properties[0]?.id||"");
+    const [usePropertyCol, setUsePropertyCol] = useState(false);
+    const [importedCount, setImportedCount] = useState(0);
+    const [dragOver, setDragOver] = useState(false);
+
+    const CAT_MAP = {
+      "advertising":"Other","auto and travel":"Other","cleaning and maintenance":"Repairs",
+      "commissions":"Management","insurance":"Insurance","legal and other professional fees":"Legal",
+      "management fees":"Management","mortgage":"Mortgage","interest":"Mortgage",
+      "repairs":"Repairs","supplies":"Other","taxes":"Taxes","utilities":"Utilities",
+      "depreciation":"CapEx","capital expenditures":"CapEx","capex":"CapEx",
+      "hoa":"HOA","vacancy":"Vacancy","renovation":"Renovation","accounting":"Accounting",
+    };
+    const mapCat = (raw) => {
+      if (!raw) return "Other";
+      const lower = raw.toLowerCase().trim();
+      for (const [k,v] of Object.entries(CAT_MAP)) { if (lower.includes(k)) return v; }
+      return EXPENSE_CATS.find(c=>c.toLowerCase()===lower) || "Other";
+    };
+    const autoMap = (headers) => {
+      const find = (...cands) => headers.find(h=>cands.some(c=>h.toLowerCase().includes(c)))||"";
+      setMapping({
+        date:     find("date","payment date","paid date"),
+        amount:   find("amount","total","cost","price","sum"),
+        category: find("category","type","expense type"),
+        note:     find("note","description","memo","detail"),
+        tenant:   find("tenant","payer","from","renter"),
+        property: find("property","address","unit","location"),
+      });
+    };
+    const parseCSV = (text) => {
+      const lines = text.trim().split(/\r?\n/);
+      if (lines.length < 2) return;
+      const headers = lines[0].split(",").map(h=>h.replace(/^"|"$/g,"").trim());
+      const rows = lines.slice(1).filter(l=>l.trim()).map(line => {
+        const cols=[]; let cur="",inQ=false;
+        for (const ch of line) {
+          if (ch==='"') inQ=!inQ;
+          else if (ch===','&&!inQ) { cols.push(cur.trim()); cur=""; }
+          else cur+=ch;
+        }
+        cols.push(cur.trim());
+        const obj={};
+        headers.forEach((h,i)=>{ obj[h]=(cols[i]||"").replace(/^"|"$/g,""); });
+        return obj;
+      });
+      setCsvHeaders(headers); setCsvRows(rows); autoMap(headers); setStep(2);
+    };
+    const handleFile = (file) => {
+      if (!file||!file.name.endsWith(".csv")) { alert("Please upload a .csv file"); return; }
+      const r=new FileReader(); r.onload=e=>parseCSV(e.target.result); r.readAsText(file);
+    };
+    const resolveProp = (rawProp) => {
+      if (!usePropertyCol || !rawProp) return assignPropId;
+      const m = properties.find(p=>p.name.toLowerCase().includes(rawProp.toLowerCase())||p.address.toLowerCase().includes(rawProp.toLowerCase()));
+      return m ? m.id : assignPropId;
+    };
+    const parseDate = (raw) => { if (!raw) return today(); const d=new Date(raw); return isNaN(d)?today():d.toISOString().slice(0,10); };
+    const parseAmt  = (raw) => Math.abs(parseFloat((raw||"0").replace(/[$,]/g,""))||0);
+
+    const doImport = () => {
+      let count=0;
+      if (dataType==="expenses") {
+        const newExp = csvRows.map(row => ({
+          id:"e"+uid(), propertyId:resolveProp(row[mapping.property]),
+          category:mapCat(row[mapping.category]), amount:parseAmt(row[mapping.amount]),
+          date:parseDate(row[mapping.date]), note:row[mapping.note]||"",
+          recurring:false, vendor:"", paymentMethod:"", capitalExpense:false,
+        }));
+        setExpenses(prev=>[...prev,...newExp]); count=newExp.length;
+      } else {
+        const newInc = csvRows.map(row => ({
+          id:"i"+uid(), propertyId:resolveProp(row[mapping.property]),
+          amount:parseAmt(row[mapping.amount]), date:parseDate(row[mapping.date]),
+          note:row[mapping.note]||"", tenant:row[mapping.tenant]||"",
+        }));
+        setIncome(prev=>[...prev,...newInc]); count=newInc.length;
+      }
+      setImportedCount(count); setStep(4);
+    };
+
+    return (
+      <div style={PAGE}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:28 }}>
+          <div>
+            <div style={{ fontSize:24, fontWeight:900, letterSpacing:"-0.025em" }}>Import from Landlord Studio</div>
+            <div style={{ fontSize:11, color:"#9a98a8", marginTop:4, fontFamily:"'IBM Plex Mono',monospace" }}>CSV import — expenses or income</div>
+          </div>
+        </div>
+
+        <div style={{ display:"flex", gap:0, marginBottom:28 }}>
+          {["Upload CSV","Map Columns","Preview","Done"].map((s,i) => {
+            const active=step===i+1, done=step>i+1;
+            return (
+              <div key={s} style={{ display:"flex", alignItems:"center" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 16px", background:active?"rgba(201,169,110,0.12)":done?"rgba(92,184,122,0.08)":"transparent", border:"1px solid "+(active?"#c9a96e":done?"#5cb87a33":"#1e1e26"), borderRadius:7, opacity:step<i+1?0.4:1 }}>
+                  <div style={{ width:20, height:20, borderRadius:"50%", background:done?"#5cb87a":active?"#c9a96e":"#252530", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:(done||active)?"#0b0b0e":"#9a98a8" }}>{done?"v":i+1}</div>
+                  <span style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:active?"#c9a96e":done?"#5cb87a":"#9a98a8" }}>{s}</span>
+                </div>
+                {i<3 && <div style={{ width:20, height:1, background:"#1e1e26" }} />}
+              </div>
+            );
+          })}
+        </div>
+
+        {step===1 && (
+          <div style={CARD}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8", marginBottom:20 }}>Step 1 — Upload your CSV</div>
+            <div style={{ marginBottom:20 }}>
+              <label style={{ display:"block", fontSize:9, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#7a7a8a", marginBottom:8, fontFamily:"'IBM Plex Mono',monospace" }}>What are you importing?</label>
+              <div style={{ display:"flex", gap:8 }}>
+                {["expenses","income"].map(t => (
+                  <button key={t} onClick={()=>setDataType(t)} style={{ padding:"9px 20px", borderRadius:7, border:"1px solid "+(dataType===t?"#c9a96e":"#252530"), background:dataType===t?"rgba(201,169,110,0.12)":"#18181f", color:dataType===t?"#c9a96e":"#9a98a8", fontFamily:"'Outfit',sans-serif", fontSize:12, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", cursor:"pointer" }}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <div
+              onDragOver={e=>{e.preventDefault();setDragOver(true);}}
+              onDragLeave={()=>setDragOver(false)}
+              onDrop={e=>{e.preventDefault();setDragOver(false);handleFile(e.dataTransfer.files[0]);}}
+              onClick={()=>document.getElementById("csv-upload").click()}
+              style={{ border:"2px dashed "+(dragOver?"#c9a96e":"#2a2a35"), borderRadius:12, padding:"48px 32px", textAlign:"center", background:dragOver?"rgba(201,169,110,0.06)":"transparent", cursor:"pointer" }}
+            >
+              <div style={{ fontSize:32, marginBottom:12 }}>📂</div>
+              <div style={{ fontSize:14, fontWeight:700, marginBottom:6 }}>Drop your CSV here or click to browse</div>
+              <div style={{ fontSize:12, color:"#9a98a8" }}>Export from Landlord Studio: Reports → Export CSV</div>
+              <input id="csv-upload" type="file" accept=".csv" style={{ display:"none" }} onChange={e=>handleFile(e.target.files[0])} />
+            </div>
+            <div style={{ marginTop:20, padding:16, background:"#18181f", border:"1px solid #1e1e26", borderRadius:8 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:"#c9a96e", marginBottom:8 }}>How to export from Landlord Studio:</div>
+              <div style={{ fontSize:12, color:"#9a98a8", lineHeight:1.8 }}>
+                <div>1. Open Landlord Studio and go to Reports</div>
+                <div>2. Select Income &amp; Expense Report or Transaction Report</div>
+                <div>3. Filter by property and date range as needed</div>
+                <div>4. Click Export CSV and save the file</div>
+                <div>5. Upload it above</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step===2 && (
+          <div style={CARD}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8", marginBottom:6 }}>Step 2 — Map your columns</div>
+            <div style={{ fontSize:12, color:"#9a98a8", marginBottom:20 }}>Detected <strong style={{color:"#eeebf0"}}>{csvRows.length} rows</strong> and <strong style={{color:"#eeebf0"}}>{csvHeaders.length} columns</strong>. We auto-mapped what we could.</div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
+              {[
+                { key:"date",     label:"Payment Date *" },
+                { key:"amount",   label:"Amount *" },
+                ...(dataType==="expenses" ? [{ key:"category", label:"Category" }] : [{ key:"tenant", label:"Tenant Name" }]),
+                { key:"note",     label:"Description / Note" },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ display:"block", fontSize:9, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#7a7a8a", marginBottom:6, fontFamily:"'IBM Plex Mono',monospace" }}>{f.label}</label>
+                  <select style={{...INPUT,cursor:"pointer"}} value={mapping[f.key]} onChange={e=>setMapping({...mapping,[f.key]:e.target.value})}>
+                    <option value="">skip</option>
+                    {csvHeaders.map(h=><option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div style={{ borderTop:"1px solid #1e1e26", paddingTop:16, marginBottom:20 }}>
+              <label style={{ display:"block", fontSize:9, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#7a7a8a", marginBottom:8, fontFamily:"'IBM Plex Mono',monospace" }}>Property Assignment</label>
+              <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+                {[["Assign all to one property",false],["Match by property column",true]].map(([label,val]) => (
+                  <button key={label} onClick={()=>setUsePropertyCol(val)} style={{ padding:"7px 14px", borderRadius:6, border:"1px solid "+(usePropertyCol===val?"#c9a96e":"#252530"), background:usePropertyCol===val?"rgba(201,169,110,0.12)":"transparent", color:usePropertyCol===val?"#c9a96e":"#9a98a8", fontFamily:"'Outfit',sans-serif", fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", cursor:"pointer" }}>{label}</button>
+                ))}
+              </div>
+              {!usePropertyCol
+                ? (
+                  <div>
+                    <label style={{ display:"block", fontSize:9, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#7a7a8a", marginBottom:6, fontFamily:"'IBM Plex Mono',monospace" }}>Assign all rows to</label>
+                    <select style={{...INPUT,cursor:"pointer"}} value={assignPropId} onChange={e=>setAssignPropId(e.target.value)}>
+                      {properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label style={{ display:"block", fontSize:9, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#7a7a8a", marginBottom:6, fontFamily:"'IBM Plex Mono',monospace" }}>Property column in CSV</label>
+                    <select style={{...INPUT,cursor:"pointer"}} value={mapping.property} onChange={e=>setMapping({...mapping,property:e.target.value})}>
+                      <option value="">select column</option>
+                      {csvHeaders.map(h=><option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                )
+              }
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              <button style={btn("ghost")} onClick={()=>setStep(1)}>Back</button>
+              <button style={btn("gold")} onClick={()=>setStep(3)} disabled={!mapping.date||!mapping.amount}>Preview Import</button>
+            </div>
+          </div>
+        )}
+
+        {step===3 && (
+          <div style={CARD}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8", marginBottom:6 }}>Step 3 — Preview</div>
+            <div style={{ fontSize:12, color:"#9a98a8", marginBottom:20 }}>Showing first 5 of <strong style={{color:"#eeebf0"}}>{csvRows.length}</strong> rows.</div>
+            <table style={TBL}>
+              <thead>
+                <tr>
+                  <th style={thSt}>Date</th>
+                  <th style={thSt}>Property</th>
+                  {dataType==="expenses" && <th style={thSt}>Category</th>}
+                  {dataType==="income"   && <th style={thSt}>Tenant</th>}
+                  <th style={thSt}>Note</th>
+                  <th style={thSt}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {csvRows.slice(0,5).map((row,i) => {
+                  const pid  = resolveProp(row[mapping.property]);
+                  const pName = getPropName(pid);
+                  const amt  = parseAmt(row[mapping.amount]);
+                  const date = parseDate(row[mapping.date]);
+                  return (
+                    <tr key={i}>
+                      <td style={tdSt({fontFamily:"'IBM Plex Mono',monospace",fontSize:10})}>{date}</td>
+                      <td style={tdSt({fontSize:12})}>{pName}</td>
+                      {dataType==="expenses" && <td style={tdSt({})}>{catBadge(mapCat(row[mapping.category]))}</td>}
+                      {dataType==="income"   && <td style={tdSt({})}>{row[mapping.tenant]||"—"}</td>}
+                      <td style={tdSt({color:"#9a98a8"})}>{row[mapping.note]||"—"}</td>
+                      <td style={tdSt({fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,color:dataType==="income"?"#5cb87a":"#d96b6b"})}>
+                        {dataType==="income"?"+":"-"}{currencyFull(amt)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div style={{ marginTop:20, padding:14, background:"rgba(201,169,110,0.08)", border:"1px solid rgba(201,169,110,0.25)", borderRadius:8, marginBottom:16 }}>
+              <div style={{ fontSize:12, color:"#c9a96e", fontWeight:700 }}>Ready to import {csvRows.length} {dataType} records</div>
+              <div style={{ fontSize:11, color:"#9a98a8", marginTop:3 }}>Existing data will not be affected.</div>
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              <button style={btn("ghost")} onClick={()=>setStep(2)}>Back</button>
+              <button style={btn("gold")} onClick={doImport}>Import {csvRows.length} Records</button>
+            </div>
+          </div>
+        )}
+
+        {step===4 && (
+          <div style={{...CARD, textAlign:"center", padding:"48px 32px"}}>
+            <div style={{ fontSize:48, marginBottom:16 }}>✅</div>
+            <div style={{ fontSize:22, fontWeight:900, marginBottom:8 }}>Import Complete</div>
+            <div style={{ fontSize:14, color:"#9a98a8", marginBottom:24 }}>Imported <strong style={{color:"#c9a96e"}}>{importedCount}</strong> {dataType} records.</div>
+            <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
+              <button style={btn("ghost")} onClick={()=>{setStep(1);setCsvHeaders([]);setCsvRows([]);}}>Import Another File</button>
+              <button style={btn("gold")} onClick={()=>setTab(dataType==="expenses"?"expenses":"income")}>View {dataType}</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ── MODALS ─────────────────────────────────────────────────────────────────
+  const propModal = modal==="prop" ? (
+    <Modal title={editId?"Edit Property":"Add Property"} onClose={()=>{setModal(null);setEditId(null);}}>
+      <Field label="Property Name"><input style={INPUT} value={pF.name} onChange={e=>setPF({...pF,name:e.target.value})} placeholder="e.g. 1842 Harlem Ave"/></Field>
+      <Field label="Full Address"><input style={INPUT} value={pF.address} onChange={e=>setPF({...pF,address:e.target.value})} placeholder="Street, City, State ZIP"/></Field>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        <Field label="Property Type"><select style={{...INPUT,cursor:"pointer"}} value={pF.type} onChange={e=>setPF({...pF,type:e.target.value})}>{PROP_TYPES.map(t=><option key={t}>{t}</option>)}</select></Field>
+        <Field label="Units"><input style={INPUT} type="number" min="1" value={pF.units} onChange={e=>setPF({...pF,units:e.target.value})}/></Field>
+        <Field label="Purchase Price ($)"><input style={INPUT} type="number" value={pF.purchasePrice} onChange={e=>setPF({...pF,purchasePrice:e.target.value})} placeholder="0"/></Field>
+        <Field label="Market Value ($)"><input style={INPUT} type="number" value={pF.marketValue} onChange={e=>setPF({...pF,marketValue:e.target.value})} placeholder="0"/></Field>
+      </div>
+      <Field label="LLC / Entity"><input style={INPUT} value={pF.llc} onChange={e=>setPF({...pF,llc:e.target.value})} placeholder="e.g. Brick & Mortar LLC"/></Field>
+      <Field label="Status"><select style={{...INPUT,cursor:"pointer"}} value={pF.status} onChange={e=>setPF({...pF,status:e.target.value})}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select></Field>
+      <Field label="Notes (optional)"><textarea style={{...INPUT,minHeight:60,resize:"vertical"}} value={pF.notes} onChange={e=>setPF({...pF,notes:e.target.value})} placeholder="Any notes..."/></Field>
+      <div style={{ borderTop:"1px solid #1e1e26", paddingTop:14, marginTop:4, marginBottom:14 }}>
+        <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#c9a96e", fontFamily:"'IBM Plex Mono',monospace", marginBottom:12 }}>Cash Reserve</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+          <Field label="Reserve Goal ($)"><input style={INPUT} type="number" value={pF.reserveGoal||10000} onChange={e=>setPF({...pF,reserveGoal:+e.target.value})} placeholder="10000"/></Field>
+          <Field label="Current Reserve ($)"><input style={INPUT} type="number" value={pF.currentReserve||0} onChange={e=>setPF({...pF,currentReserve:+e.target.value})} placeholder="0"/></Field>
+        </div>
+        <div style={{ fontSize:11, color:"#5a5868" }}>Use a negative number if you are currently in the hole.</div>
+      </div>
+      <button style={{...btn("gold"),width:"100%",justifyContent:"center",marginTop:4}} onClick={saveProp}>{editId?"Save Changes":"Add Property"}</button>
+      {editId && <FileAttachments recordId={editId} recordType="property" />}
+    </Modal>
+  ) : null;
+
+  const expModal = modal==="exp" ? (
+    <Modal title={editId?"Edit Expense":"Log Expense"} onClose={()=>{setModal(null);setEditId(null);}}>
+      <Field label="Property"><select style={{...INPUT,cursor:"pointer"}} value={eF.propertyId} onChange={e=>setEF({...eF,propertyId:e.target.value})}>{properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        <Field label="Category"><select style={{...INPUT,cursor:"pointer"}} value={eF.category} onChange={e=>setEF({...eF,category:e.target.value})}>{EXPENSE_CATS.map(c=><option key={c}>{c}</option>)}</select></Field>
+        <Field label="Amount ($)"><input style={INPUT} type="number" step="0.01" value={eF.amount} onChange={e=>setEF({...eF,amount:e.target.value})} placeholder="0.00"/></Field>
+        <Field label="Date"><input style={INPUT} type="date" value={eF.date} onChange={e=>setEF({...eF,date:e.target.value})}/></Field>
+        <Field label="Recurring?">
+          <div style={{ display:"flex", alignItems:"center", gap:10, paddingTop:8 }}>
+            <input type="checkbox" checked={eF.recurring} onChange={e=>setEF({...eF,recurring:e.target.checked})} style={{ width:16, height:16 }}/>
+            <span style={{ fontSize:12, color:"#9a98a8" }}>Monthly recurring</span>
+          </div>
+        </Field>
+      </div>
+      <Field label="Note"><input style={INPUT} value={eF.note} onChange={e=>setEF({...eF,note:e.target.value})} placeholder="e.g. HVAC repair, Q1 taxes..."/></Field>
+      <Field label="Vendor / Payee"><input style={INPUT} value={eF.vendor||""} onChange={e=>setEF({...eF,vendor:e.target.value})} placeholder="e.g. John's Plumbing, Home Depot"/></Field>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        <Field label="Payment Method">
+          <select style={{...INPUT,cursor:"pointer"}} value={eF.paymentMethod||""} onChange={e=>setEF({...eF,paymentMethod:e.target.value})}>
+            <option value="">select</option>
+            {PAY_METHODS.map(m=><option key={m}>{m}</option>)}
+          </select>
+        </Field>
+        <Field label="Capital Expense?">
+          <div style={{ display:"flex", alignItems:"center", gap:10, paddingTop:8 }}>
+            <input type="checkbox" checked={eF.capitalExpense||false} onChange={e=>setEF({...eF,capitalExpense:e.target.checked})} style={{ width:16, height:16 }}/>
+            <span style={{ fontSize:12, color:"#9a98a8" }}>Depreciate over time</span>
+          </div>
+        </Field>
+      </div>
+      <button style={{...btn("gold"),width:"100%",justifyContent:"center",marginTop:4}} onClick={saveExp}>{editId?"Save Changes":"Log Expense"}</button>
+      {editId && <FileAttachments recordId={editId} recordType="expense" />}
+    </Modal>
+  ) : null;
+
+  const incModal = modal==="inc" ? (
+    <Modal title={editId?"Edit Income":"Log Income"} onClose={()=>{setModal(null);setEditId(null);}}>
+      <Field label="Property"><select style={{...INPUT,cursor:"pointer"}} value={iF.propertyId} onChange={e=>setIF({...iF,propertyId:e.target.value})}>{properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        <Field label="Amount ($)"><input style={INPUT} type="number" step="0.01" value={iF.amount} onChange={e=>setIF({...iF,amount:e.target.value})} placeholder="0.00"/></Field>
+        <Field label="Date"><input style={INPUT} type="date" value={iF.date} onChange={e=>setIF({...iF,date:e.target.value})}/></Field>
+      </div>
+      <Field label="Tenant Name (optional)"><input style={INPUT} value={iF.tenant} onChange={e=>setIF({...iF,tenant:e.target.value})} placeholder="Tenant name"/></Field>
+      <Field label="Note"><input style={INPUT} value={iF.note} onChange={e=>setIF({...iF,note:e.target.value})} placeholder="e.g. Unit 1 rent, late fee..."/></Field>
+      <button style={{...btn("gold"),width:"100%",justifyContent:"center",marginTop:4}} onClick={saveInc}>{editId?"Save Changes":"Log Income"}</button>
+      {editId && <FileAttachments recordId={editId} recordType="income" />}
+    </Modal>
+  ) : null;
+
+  const rsvProp = properties.find(x=>x.id===reserveTarget.propId);
+  const reserveModal = (modal==="reserve" && rsvProp) ? (
+    <Modal title="Update Cash Reserve" onClose={()=>setModal(null)}>
+      <div style={{ fontSize:13, fontWeight:700, marginBottom:16, color:"#c9a96e" }}>{rsvProp.name}</div>
+      <ReserveMeter current={reserveTarget.current} goal={reserveTarget.goal} />
+      <div style={{ marginTop:20 }}>
+        <Field label="Current Reserve ($) — actual cash on hand">
+          <input style={INPUT} type="number" value={reserveTarget.current} onChange={e=>setReserveTarget({...reserveTarget,current:+e.target.value})} placeholder="e.g. -10000"/>
+        </Field>
+        <Field label="Reserve Goal ($)">
+          <input style={INPUT} type="number" value={reserveTarget.goal} onChange={e=>setReserveTarget({...reserveTarget,goal:+e.target.value})} placeholder="10000"/>
+        </Field>
+        <div style={{ fontSize:11, color:"#5a5868", marginBottom:16 }}>Use a negative number if you are currently in the hole (e.g. -10000).</div>
+      </div>
+      <button style={{...btn("gold"),width:"100%",justifyContent:"center"}} onClick={()=>{
+        setPropertiesTracked(prev => prev.map(x => x.id===reserveTarget.propId ? {...x, currentReserve:reserveTarget.current, reserveGoal:reserveTarget.goal} : x));
+        setModal(null);
+      }}>Save Reserve</button>
+    </Modal>
+  ) : null;
+
+  // ── NAV ────────────────────────────────────────────────────────────────────
+  const navItems = [
+    { id:"dashboard",  icon:"◈", label:"Dashboard"  },
+    { id:"properties", icon:"⬡", label:"Properties" },
+    { id:"expenses",   icon:"↓", label:"Expenses"   },
+    { id:"income",     icon:"↑", label:"Income"     },
+    { id:"reports",    icon:"⊞", label:"Reports"    },
+    { id:"import",     icon:"⇪", label:"Import"     },
+  ];
+
+  const globalCss = `
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:#0b0b0e;}
+    ::-webkit-scrollbar{width:8px;height:8px;}
+    ::-webkit-scrollbar-track{background:#0f0f14;border-radius:4px;}
+    ::-webkit-scrollbar-thumb{background:#2e2e40;border-radius:4px;border:2px solid #0f0f14;}
+    ::-webkit-scrollbar-thumb:hover{background:#3e3e58;}
+    ::-webkit-scrollbar-corner{background:#0f0f14;}
+    * { scrollbar-width: thin; scrollbar-color: #2e2e40 #0f0f14; }
+  `;
+
+  const allReady = propsReady && expReady && incReady;
+
+  // ── One-time migration: ensure 716 data is in storage if missing ──────────
+  useEffect(() => {
+    if (!propsReady || !expReady || !incReady) return;
+    // Check inside functional updaters so we always see latest state, never stale closure
+    setProperties(prev => {
+      if (prev.some(p => p.id === "p716")) return prev;
+      return [...prev, {
+        id:"p716", name:"716 E 35th St", type:"Single Family", units:1,
+        address:"716 East 35th Street, Waverly, Baltimore, MD 21218",
+        purchasePrice:0, marketValue:0, llc:"", status:"Vacant",
+        notes:"Imported from Income/Expense Statement Jan 2025 – Mar 2026",
+        reserveGoal:10000, currentReserve:0
+      }];
+    });
+    setExpenses(prev => {
+      if (prev.some(e => e.id === "p716e1")) return prev;
+      return [...prev, ...SEED.expenses716];
+    });
+  }, [propsReady, expReady, incReady]);
+  // ── End migration ──────────────────────────────────────────────────────────
+  if (!allReady) return (
+    <div style={{ background:"#0b0b0e", height:"100vh", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16 }}>
+      <div style={{ width:36, height:36, border:"3px solid #1e1e26", borderTopColor:"#c9a96e", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <span style={{ color:"#5a5868", fontFamily:"'IBM Plex Mono',monospace", fontSize:10, letterSpacing:"0.15em" }}>SYNCING WITH PORTFOLIO COMMAND</span>
+    </div>
+  );
+
+  return (
+    <>
+      <style>{globalCss}</style>
+      <div style={{ display:"flex", height:"100vh", overflow:"hidden", fontFamily:"'Outfit',sans-serif", background:"#0b0b0e", color:"#eeebf0" }}>
+
+        {/* Sidebar */}
+        <div style={{ width:210, background:"#111116", borderRight:"1px solid #1e1e26", display:"flex", flexDirection:"column", flexShrink:0, overflowY:"auto", minHeight:0 }}>
+          <div style={{ padding:"24px 20px", borderBottom:"1px solid #1e1e26" }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.14em", textTransform:"uppercase", color:"#c9a96e", fontFamily:"'IBM Plex Mono',monospace" }}>Portfolio</div>
+            <div style={{ fontSize:18, fontWeight:900, letterSpacing:"-0.02em", marginTop:3 }}>LedgerPro</div>
+            <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:5, padding:"4px 8px", background:"rgba(201,169,110,0.08)", borderRadius:5, border:"1px solid rgba(201,169,110,0.15)" }}>
+              <div style={{ width:5, height:5, borderRadius:"50%", background:"#4caf82", boxShadow:"0 0 4px #4caf82" }} />
+              <span style={{ fontSize:8, fontWeight:700, letterSpacing:"0.12em", color:"#c9a96e", fontFamily:"'IBM Plex Mono',monospace" }}>SYNCED · PORTFOLIO COMMAND</span>
+            </div>
+            <div style={{ marginTop:8, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"6px 8px", background: saveStatus==="saving" ? "rgba(92,184,122,0.08)" : saveStatus==="error" ? "rgba(217,107,107,0.08)" : "rgba(92,184,122,0.06)", borderRadius:5, border:`1px solid ${saveStatus==="saving" ? "rgba(92,184,122,0.25)" : saveStatus==="error" ? "rgba(217,107,107,0.25)" : "rgba(92,184,122,0.15)"}`, transition:"all 0.3s" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                {saveStatus === "saving"
+                  ? <div style={{ width:6, height:6, border:"1.5px solid #5cb87a", borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.6s linear infinite" }} />
+                  : saveStatus === "error"
+                  ? <div style={{ width:5, height:5, borderRadius:"50%", background:"#d96b6b" }} />
+                  : <div style={{ width:5, height:5, borderRadius:"50%", background:"#5cb87a", boxShadow:"0 0 4px #5cb87a" }} />
+                }
+                <span style={{ fontSize:8, fontWeight:700, letterSpacing:"0.1em", fontFamily:"'IBM Plex Mono',monospace", color: saveStatus==="saving" ? "#5cb87a" : saveStatus==="error" ? "#d96b6b" : "#5cb87a" }}>
+                  {saveStatus === "saving" ? "SAVING..." : saveStatus === "error" ? "SAVE FAILED" : "ALL CHANGES SAVED"}
+                </span>
+              </div>
+              <button
+                onClick={async () => {
+                  setSaveStatus("saving");
+                  try {
+                    const saves = [
+                      ["pc:properties", propsRef.current],
+                      ["pc:expenses",   expRef.current],
+                      ["pc:income",     incRef.current],
+                    ];
+                    // Always write to localStorage (works everywhere)
+                    saves.forEach(([k, v]) => {
+                      try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
+                    });
+                    // Also write to window.storage if in Claude.ai
+                    if (typeof window.storage !== "undefined" && window.storage) {
+                      await Promise.all(saves.map(([k, v]) =>
+                        window.storage.set(k, JSON.stringify(v)).catch(() => {})
+                      ));
+                    }
+                    setSaveStatus("saved");
+                  } catch (err) {
+                    console.error("LedgerPro: save failed —", err?.message || err);
+                    setSaveStatus("error");
+                  }
+                }}
+                title="Force save all data now"
+                style={{ background:"transparent", border:"1px solid rgba(92,184,122,0.2)", borderRadius:4, color:"#5cb87a", fontSize:8, padding:"2px 6px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+                Save
+              </button>
+            </div>
+          </div>
+          <div style={{ padding:"16px 10px", flex:1 }}>
+            {navItems.map(n => (
+              <button key={n.id} onClick={()=>{setTab(n.id); if(n.id!=="properties") setSelPropId(null);}}
+                style={{ display:"flex", alignItems:"center", gap:10, width:"100%", background:tab===n.id?"rgba(201,169,110,0.12)":"none", border:tab===n.id?"1px solid rgba(201,169,110,0.2)":"1px solid transparent", color:tab===n.id?"#c9a96e":"#9a98a8", fontFamily:"'Outfit',sans-serif", fontSize:12, fontWeight:600, letterSpacing:"0.04em", textTransform:"uppercase", padding:"9px 12px", borderRadius:7, cursor:"pointer", marginBottom:1 }}>
+                <span style={{ fontSize:13, width:16, textAlign:"center" }}>{n.icon}</span>{n.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ padding:"16px 20px", borderTop:"1px solid #1e1e26" }}>
+            <div style={{ fontSize:9, color:"#5a5868", fontFamily:"'IBM Plex Mono',monospace", letterSpacing:"0.1em", textTransform:"uppercase" }}>Portfolio NOI</div>
+            <div style={{ fontSize:15, fontWeight:700, color:noi>=0?"#5cb87a":"#d96b6b", marginTop:3, fontFamily:"'IBM Plex Mono',monospace" }}>{currency(noi)}/mo</div>
+            <div style={{ marginTop:12, display:"flex", gap:6 }}>
+              <button
+                title="Export backup JSON"
+                onClick={() => {
+                  const backup = {
+                    version: 1,
+                    exportedAt: new Date().toISOString(),
+                    properties, expenses, income
+                  };
+                  const blob = new Blob([JSON.stringify(backup, null, 2)], { type:"application/json" });
+                  const url  = URL.createObjectURL(blob);
+                  const a    = document.createElement("a");
+                  a.href     = url;
+                  a.download = "ledgerpro-backup-" + new Date().toISOString().slice(0,10) + ".json";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                style={{ flex:1, background:"transparent", border:"1px solid #2a2a35", borderRadius:6, color:"#9a98a8", fontSize:9, padding:"6px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+                ⬇ Backup
+              </button>
+              <label
+                title="Import backup JSON"
+                style={{ flex:1, background:"transparent", border:"1px solid #2a2a35", borderRadius:6, color:"#9a98a8", fontSize:9, padding:"6px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", textAlign:"center", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                ⬆ Restore
+                <input type="file" accept=".json" style={{ display:"none" }} onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    try {
+                      const data = JSON.parse(ev.target.result);
+                      if (data.properties) setPropertiesTracked(data.properties);
+                      if (data.expenses)   setExpensesTracked(data.expenses);
+                      if (data.income)     setIncomeTracked(data.income);
+                      setSaveStatus("saved");
+                      alert("Backup restored successfully!");
+                    } catch (err) {
+                      alert("Could not read backup file: " + err.message);
+                    }
+                  };
+                  reader.readAsText(file);
+                  e.target.value = "";
+                }} />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Main */}
+        <div style={{ flex:1, overflowY:"auto", minHeight:0 }}>
+          {tab==="dashboard"  && <Dashboard/>}
+          {tab==="properties" && <Properties/>}
+          {tab==="expenses"   && <Expenses/>}
+          {tab==="income"     && <Income/>}
+          {tab==="reports"    && <Reports/>}
+          {tab==="import"     && <Import/>}
+        </div>
+
+        {propModal}
+        {expModal}
+        {incModal}
+        {reserveModal}
+      </div>
+    </>
+  );
+}
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>

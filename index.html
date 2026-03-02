@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Tools — Shandin Harper</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #07070e; color: #eeebf0; font-family: 'Segoe UI', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+    h1 { font-size: 13px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #c8a84b; margin-bottom: 8px; }
+    p { font-size: 13px; color: #5a5868; margin-bottom: 48px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; width: 100%; max-width: 820px; }
+    .card { background: #111116; border: 1px solid #1e1e26; border-radius: 14px; padding: 28px 24px; text-decoration: none; color: inherit; transition: border-color 0.2s, transform 0.15s; display: block; }
+    .card:hover { border-color: #c8a84b44; transform: translateY(-2px); }
+    .icon { font-size: 28px; margin-bottom: 14px; }
+    .name { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .desc { font-size: 12px; color: #5a5868; line-height: 1.5; }
+    .tag { display: inline-block; margin-top: 12px; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #c8a84b; background: rgba(200,168,75,0.1); border: 1px solid rgba(200,168,75,0.2); border-radius: 4px; padding: 3px 8px; }
+  </style>
+</head>
+<body>
+  <h1>Portfolio Tools</h1>
+  <p>Shandin Harper — Real Estate Investment Suite</p>
+  <div class="grid">
+    <a class="card" href="portfolio-command.html">
+      <div class="icon">🏛️</div>
+      <div class="name">Portfolio Command</div>
+      <div class="desc">Hub dashboard connecting properties, financials, and tasks in one view.</div>
+      <div class="tag">Hub</div>
+    </a>
+    <a class="card" href="ledgerpro-synced.html">
+      <div class="icon">📊</div>
+      <div class="name">LedgerPro</div>
+      <div class="desc">Track income, expenses, and property financials with full reporting.</div>
+      <div class="tag">Finance</div>
+    </a>
+    <a class="card" href="grasshopper-synced.html">
+      <div class="icon">🦗</div>
+      <div class="name">Grasshopper</div>
+      <div class="desc">Kanban task management for property projects and to-dos.</div>
+      <div class="tag">Tasks</div>
+    </a>
+  </div>
+</body>
+</html>
