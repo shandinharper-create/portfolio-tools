@@ -823,16 +823,43 @@ function App() {
   // ── EXPENSES ───────────────────────────────────────────────────────────────
   const Expenses = () => {
     const [expandedId, setExpandedId] = useState(null);
-    const [rowForm, setRowForm] = useState({});
+    const [rowForm, setRowForm]       = useState({});
+    const [sort, setSort]             = useState({ col:"date", dir:"desc" });
+
     const list = filterProp==="all" ? expenses : expenses.filter(e=>e.propertyId===filterProp);
 
-    const startEdit = (e) => { setExpandedId(e.id); setRowForm({...e}); };
+    const sorted = list.slice().sort((a,b) => {
+      const { col, dir } = sort;
+      let av = a[col], bv = b[col];
+      if (col === "amount") { av = +av; bv = +bv; }
+      else { av = (av||"").toString(); bv = (bv||"").toString(); }
+      return dir === "asc" ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+    });
+
+    const toggleSort = (col) => setSort(s => ({ col, dir: s.col===col && s.dir==="desc" ? "asc" : "desc" }));
+
+    const SortTh = ({ col, label }) => {
+      const active = sort.col === col;
+      const arrow  = active ? (sort.dir === "asc" ? " ▲" : " ▼") : " ⬍";
+      return (
+        <th onClick={() => toggleSort(col)} style={{ ...thSt, cursor:"pointer", userSelect:"none",
+          color: active ? "#c9a96e" : "#5a5868",
+          whiteSpace:"nowrap" }}>
+          {label}{arrow}
+        </th>
+      );
+    };
+
+    const startEdit  = (e) => { setExpandedId(e.id); setRowForm({...e}); };
     const cancelEdit = () => { setExpandedId(null); setRowForm({}); };
     const commitEdit = () => {
       const updated = { ...rowForm, amount: +rowForm.amount };
       setExpensesTracked(prev => prev.map(x => x.id === updated.id ? updated : x));
-      setExpandedId(null);
-      setRowForm({});
+      setExpandedId(null); setRowForm({});
+    };
+    const duplicateExp = (e) => {
+      const copy = { ...e, id: "e" + Date.now() + Math.random().toString(36).slice(2,6) };
+      setExpensesTracked(prev => [...prev, copy]);
     };
 
     const RF = (key, type="text", opts) => {
@@ -873,10 +900,20 @@ function App() {
             : (
               <table style={TBL}>
                 <thead>
-                  <tr>{["Date","Property","Category","Vendor","Payment","Note","CapEx","Amount",""].map(h=><th key={h} style={thSt}>{h}</th>)}</tr>
+                  <tr>
+                    <SortTh col="date"     label="Date" />
+                    <th style={thSt}>Property</th>
+                    <SortTh col="category" label="Category" />
+                    <th style={thSt}>Vendor</th>
+                    <th style={thSt}>Payment</th>
+                    <th style={thSt}>Note</th>
+                    <th style={thSt}>CapEx</th>
+                    <SortTh col="amount"   label="Amount" />
+                    <th style={thSt}></th>
+                  </tr>
                 </thead>
                 <tbody>
-                  {list.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(e => {
+                  {sorted.map(e => {
                     const isEditing = expandedId === e.id;
                     if (isEditing) {
                       return (
@@ -921,7 +958,10 @@ function App() {
                         </td>
                         <td style={tdSt({color:"#d96b6b",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"})}>-{currencyFull(e.amount)}</td>
                         <td style={tdSt({})} onClick={ev=>ev.stopPropagation()}>
-                          <button style={btn("danger","sm")} onClick={()=>delExp(e.id)}>Delete</button>
+                          <div style={{ display:"flex", gap:4 }}>
+                            <button title="Duplicate" style={{...btn("ghost","sm"), padding:"4px 8px", fontSize:11}} onClick={()=>duplicateExp(e)}>⧉</button>
+                            <button style={btn("danger","sm")} onClick={()=>delExp(e.id)}>Delete</button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -935,19 +975,46 @@ function App() {
     );
   };
 
-  // ── INCOME ─────────────────────────────────────────────────────────────────
+  // ── INCOME  ─────────────────────────────────────────────────────────────────
   const Income = () => {
     const [expandedId, setExpandedId] = useState(null);
-    const [rowForm, setRowForm] = useState({});
+    const [rowForm, setRowForm]       = useState({});
+    const [sort, setSort]             = useState({ col:"date", dir:"desc" });
+
     const list = filterProp==="all" ? income : income.filter(i=>i.propertyId===filterProp);
 
-    const startEdit = (i) => { setExpandedId(i.id); setRowForm({...i}); };
+    const sorted = list.slice().sort((a,b) => {
+      const { col, dir } = sort;
+      let av = a[col], bv = b[col];
+      if (col === "amount") { av = +av; bv = +bv; }
+      else { av = (av||"").toString(); bv = (bv||"").toString(); }
+      return dir === "asc" ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+    });
+
+    const toggleSort = (col) => setSort(s => ({ col, dir: s.col===col && s.dir==="desc" ? "asc" : "desc" }));
+
+    const SortTh = ({ col, label }) => {
+      const active = sort.col === col;
+      const arrow  = active ? (sort.dir === "asc" ? " ▲" : " ▼") : " ⬍";
+      return (
+        <th onClick={() => toggleSort(col)} style={{ ...thSt, cursor:"pointer", userSelect:"none",
+          color: active ? "#5cb87a" : "#5a5868",
+          whiteSpace:"nowrap" }}>
+          {label}{arrow}
+        </th>
+      );
+    };
+
+    const startEdit  = (i) => { setExpandedId(i.id); setRowForm({...i}); };
     const cancelEdit = () => { setExpandedId(null); setRowForm({}); };
     const commitEdit = () => {
       const updated = { ...rowForm, amount: +rowForm.amount };
       setIncomeTracked(prev => prev.map(x => x.id === updated.id ? updated : x));
-      setExpandedId(null);
-      setRowForm({});
+      setExpandedId(null); setRowForm({});
+    };
+    const duplicateInc = (i) => {
+      const copy = { ...i, id: "i" + Date.now() + Math.random().toString(36).slice(2,6) };
+      setIncomeTracked(prev => [...prev, copy]);
     };
 
     const RF = (key, type="text") => (
@@ -976,10 +1043,17 @@ function App() {
             : (
               <table style={TBL}>
                 <thead>
-                  <tr>{["Date","Property","Tenant","Note","Amount",""].map(h=><th key={h} style={thSt}>{h}</th>)}</tr>
+                  <tr>
+                    <SortTh col="date"   label="Date" />
+                    <th style={thSt}>Property</th>
+                    <th style={thSt}>Tenant</th>
+                    <th style={thSt}>Note</th>
+                    <SortTh col="amount" label="Amount" />
+                    <th style={thSt}></th>
+                  </tr>
                 </thead>
                 <tbody>
-                  {list.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(i => {
+                  {sorted.map(i => {
                     const isEditing = expandedId === i.id;
                     if (isEditing) {
                       return (
@@ -1014,7 +1088,10 @@ function App() {
                         <td style={tdSt({color:"#9a98a8"})}>{i.note||"—"}</td>
                         <td style={tdSt({color:"#5cb87a",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"})}>+{currencyFull(i.amount)}</td>
                         <td style={tdSt({})} onClick={ev=>ev.stopPropagation()}>
-                          <button style={btn("danger","sm")} onClick={()=>delIncTracked(i.id)}>Delete</button>
+                          <div style={{ display:"flex", gap:4 }}>
+                            <button title="Duplicate" style={{...btn("ghost","sm"), padding:"4px 8px", fontSize:11}} onClick={()=>duplicateInc(i)}>⧉</button>
+                            <button style={btn("danger","sm")} onClick={()=>delIncTracked(i.id)}>Delete</button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1028,7 +1105,7 @@ function App() {
     );
   };
 
-  // ── REPORTS ────────────────────────────────────────────────────────────────
+  // ── REPORTS  ────────────────────────────────────────────────────────────────
   const Reports = () => {
     const maxCat = expByCat[0]?.[1] || 1;
     return (
