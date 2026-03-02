@@ -705,70 +705,120 @@ function App() {
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
 
             {/* ── Income Card ── */}
-            <div style={CARD}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14 }}>
-                <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8" }}>Income</span>
-                <button style={btn("ghost","sm")} onClick={()=>{setIF({...blankI,propertyId:selProp.id});setEditId(null);setModal("inc");}}>+ Add</button>
-              </div>
-              {selInc.length===0
-                ? <div style={{ textAlign:"center", padding:30, color:"#5a5868" }}>No income logged</div>
-                : (
-                  <table style={TBL}>
-                    <thead><tr>{["Date","Tenant","Note","Amount",""].map(h=><th key={h} style={thSt}>{h}</th>)}</tr></thead>
-                    <tbody>
-                      {selInc.map(i => (
-                        <tr key={i.id}
-                          onClick={()=>openEditInc(i)}
-                          style={{ cursor:"pointer" }}
-                          onMouseEnter={ev=>ev.currentTarget.style.background="#13131e"}
-                          onMouseLeave={ev=>ev.currentTarget.style.background=""}>
-                          <td style={tdSt({fontFamily:"'IBM Plex Mono',monospace",fontSize:10})}>{i.date}</td>
-                          <td style={tdSt({})}>{i.tenant||"—"}</td>
-                          <td style={tdSt({color:"#9a98a8",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{i.note||"—"}</td>
-                          <td style={tdSt({color:"#5cb87a",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"})}>+{currencyFull(i.amount)}</td>
-                          <td style={tdSt({})} onClick={ev=>ev.stopPropagation()}>
-                            <button style={btn("danger","sm")} onClick={()=>delIncTracked(i.id)}>✕</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )
-              }
-            </div>
+            {(() => {
+              const [incSort, setIncSort] = React.useState({ col:"date", dir:"desc" });
+              const sortedInc = selInc.slice().sort((a,b) => {
+                let av = incSort.col==="amount" ? +a[incSort.col] : (a[incSort.col]||"").toString();
+                let bv = incSort.col==="amount" ? +b[incSort.col] : (b[incSort.col]||"").toString();
+                return incSort.dir==="asc" ? (av>bv?1:-1) : (av<bv?1:-1);
+              });
+              const toggleInc = (col) => setIncSort(s=>({ col, dir: s.col===col && s.dir==="desc"?"asc":"desc" }));
+              const SortThI = ({ col, label }) => {
+                const active = incSort.col===col;
+                return <th onClick={()=>toggleInc(col)} style={{...thSt, cursor:"pointer", userSelect:"none", color:active?"#5cb87a":"#5a5868", whiteSpace:"nowrap"}}>{label}{active?(incSort.dir==="asc"?" ▲":" ▼"):" ⬍"}</th>;
+              };
+              const dupInc = (i) => setIncomeTracked(prev=>[...prev,{...i,id:"i"+Date.now()+Math.random().toString(36).slice(2,6)}]);
+              return (
+                <div style={CARD}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14 }}>
+                    <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8" }}>Income</span>
+                    <button style={btn("ghost","sm")} onClick={()=>{setIF({...blankI,propertyId:selProp.id});setEditId(null);setModal("inc");}}>+ Add</button>
+                  </div>
+                  {selInc.length===0
+                    ? <div style={{ textAlign:"center", padding:30, color:"#5a5868" }}>No income logged</div>
+                    : (
+                      <table style={TBL}>
+                        <thead><tr>
+                          <SortThI col="date"   label="Date" />
+                          <th style={thSt}>Tenant</th>
+                          <th style={thSt}>Note</th>
+                          <SortThI col="amount" label="Amount" />
+                          <th style={thSt}></th>
+                        </tr></thead>
+                        <tbody>
+                          {sortedInc.map(i => (
+                            <tr key={i.id}
+                              onClick={()=>openEditInc(i)}
+                              style={{ cursor:"pointer" }}
+                              onMouseEnter={ev=>ev.currentTarget.style.background="#13131e"}
+                              onMouseLeave={ev=>ev.currentTarget.style.background=""}>
+                              <td style={tdSt({fontFamily:"'IBM Plex Mono',monospace",fontSize:10})}>{i.date}</td>
+                              <td style={tdSt({})}>{i.tenant||"—"}</td>
+                              <td style={tdSt({color:"#9a98a8",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{i.note||"—"}</td>
+                              <td style={tdSt({color:"#5cb87a",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"})}>+{currencyFull(i.amount)}</td>
+                              <td style={tdSt({})} onClick={ev=>ev.stopPropagation()}>
+                                <div style={{display:"flex",gap:4}}>
+                                  <button title="Duplicate" style={{...btn("ghost","sm"),padding:"3px 7px",fontSize:11}} onClick={()=>dupInc(i)}>⧉</button>
+                                  <button style={btn("danger","sm")} onClick={()=>delIncTracked(i.id)}>✕</button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  }
+                </div>
+              );
+            })()}
 
             {/* ── Expenses Card ── */}
-            <div style={CARD}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14 }}>
-                <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8" }}>Expenses</span>
-                <button style={btn("ghost","sm")} onClick={()=>{setEF({...blankE,propertyId:selProp.id});setEditId(null);setModal("exp");}}>+ Add</button>
-              </div>
-              {selExp.length===0
-                ? <div style={{ textAlign:"center", padding:30, color:"#5a5868" }}>No expenses logged</div>
-                : (
-                  <table style={TBL}>
-                    <thead><tr>{["Date","Category","Note","Amount",""].map(h=><th key={h} style={thSt}>{h}</th>)}</tr></thead>
-                    <tbody>
-                      {selExp.map(e => (
-                        <tr key={e.id}
-                          onClick={()=>openEditExp(e)}
-                          style={{ cursor:"pointer" }}
-                          onMouseEnter={ev=>ev.currentTarget.style.background="#13131e"}
-                          onMouseLeave={ev=>ev.currentTarget.style.background=""}>
-                          <td style={tdSt({fontFamily:"'IBM Plex Mono',monospace",fontSize:10})}>{e.date}</td>
-                          <td style={tdSt({})}>{catBadge(e.category)}</td>
-                          <td style={tdSt({color:"#9a98a8",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{e.note||e.vendor||"—"}</td>
-                          <td style={tdSt({color:"#d96b6b",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"})}>-{currencyFull(e.amount)}</td>
-                          <td style={tdSt({})} onClick={ev=>ev.stopPropagation()}>
-                            <button style={btn("danger","sm")} onClick={()=>delExp(e.id)}>✕</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )
-              }
-            </div>
+            {(() => {
+              const [expSort, setExpSort] = React.useState({ col:"date", dir:"desc" });
+              const sortedExp = selExp.slice().sort((a,b) => {
+                let av = expSort.col==="amount" ? +a[expSort.col] : (a[expSort.col]||"").toString();
+                let bv = expSort.col==="amount" ? +b[expSort.col] : (b[expSort.col]||"").toString();
+                return expSort.dir==="asc" ? (av>bv?1:-1) : (av<bv?1:-1);
+              });
+              const toggleExp = (col) => setExpSort(s=>({ col, dir: s.col===col && s.dir==="desc"?"asc":"desc" }));
+              const SortThE = ({ col, label }) => {
+                const active = expSort.col===col;
+                return <th onClick={()=>toggleExp(col)} style={{...thSt, cursor:"pointer", userSelect:"none", color:active?"#c9a96e":"#5a5868", whiteSpace:"nowrap"}}>{label}{active?(expSort.dir==="asc"?" ▲":" ▼"):" ⬍"}</th>;
+              };
+              const dupExp = (e) => setExpensesTracked(prev=>[...prev,{...e,id:"e"+Date.now()+Math.random().toString(36).slice(2,6)}]);
+              return (
+                <div style={CARD}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14 }}>
+                    <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", color:"#9a98a8" }}>Expenses</span>
+                    <button style={btn("ghost","sm")} onClick={()=>{setEF({...blankE,propertyId:selProp.id});setEditId(null);setModal("exp");}}>+ Add</button>
+                  </div>
+                  {selExp.length===0
+                    ? <div style={{ textAlign:"center", padding:30, color:"#5a5868" }}>No expenses logged</div>
+                    : (
+                      <table style={TBL}>
+                        <thead><tr>
+                          <SortThE col="date"     label="Date" />
+                          <SortThE col="category" label="Category" />
+                          <th style={thSt}>Note</th>
+                          <SortThE col="amount"   label="Amount" />
+                          <th style={thSt}></th>
+                        </tr></thead>
+                        <tbody>
+                          {sortedExp.map(e => (
+                            <tr key={e.id}
+                              onClick={()=>openEditExp(e)}
+                              style={{ cursor:"pointer" }}
+                              onMouseEnter={ev=>ev.currentTarget.style.background="#13131e"}
+                              onMouseLeave={ev=>ev.currentTarget.style.background=""}>
+                              <td style={tdSt({fontFamily:"'IBM Plex Mono',monospace",fontSize:10})}>{e.date}</td>
+                              <td style={tdSt({})}>{catBadge(e.category)}</td>
+                              <td style={tdSt({color:"#9a98a8",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{e.note||e.vendor||"—"}</td>
+                              <td style={tdSt({color:"#d96b6b",fontWeight:700,fontFamily:"'IBM Plex Mono',monospace"})}>-{currencyFull(e.amount)}</td>
+                              <td style={tdSt({})} onClick={ev=>ev.stopPropagation()}>
+                                <div style={{display:"flex",gap:4}}>
+                                  <button title="Duplicate" style={{...btn("ghost","sm"),padding:"3px 7px",fontSize:11}} onClick={()=>dupExp(e)}>⧉</button>
+                                  <button style={btn("danger","sm")} onClick={()=>delExp(e.id)}>✕</button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  }
+                </div>
+              );
+            })()}
           </div>        </div>
       );
     }
