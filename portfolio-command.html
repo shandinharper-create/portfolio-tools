@@ -87,67 +87,41 @@ const SEED = {
   ],
 };
 
-// ─── Storage Hook — dual store: localStorage (offline) + window.storage (Claude.ai sync) ──
-function useServerStorage(key, fallback) {
-  const [val, setValState] = useState(fallback);
-  const [ready, setReady] = useState(false);
-  const valRef = useRef(fallback);
-
-  useEffect(() => {
+// ─── Storage Hook (window.storage = server-side) ──────────────────────────────
+// Dual storage: localStorage + window.storage. writeSeed=false = never write fallback (protects Grasshopper data)
+function useServerStorage(key, fallback, writeSeed) {
+  writeSeed = writeSeed !== false;
+  const [val, setValState] = React.useState(fallback);
+  const [ready, setReady]  = React.useState(false);
+  const valRef = React.useRef(fallback);
+  React.useEffect(() => {
     let loaded = false;
-    // 1. localStorage — instant, works in any browser
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        valRef.current = parsed;
-        setValState(parsed);
-        loaded = true;
-      }
-    } catch {}
-
-    // 2. window.storage — Claude.ai server sync (may have newer data)
+    try { const raw = localStorage.getItem(key); if (raw) { const p = JSON.parse(raw); valRef.current=p; setValState(p); loaded=true; } } catch {}
     (async () => {
       try {
-        if (typeof window.storage !== "undefined" && window.storage) {
-          const result = await window.storage.get(key);
-          if (result && result.value !== undefined) {
-            const parsed = JSON.parse(result.value);
-            valRef.current = parsed;
-            setValState(parsed);
-            loaded = true;
-            try { localStorage.setItem(key, result.value); } catch {}
+        if (typeof window.storage !== 'undefined' && window.storage) {
+          const r = await window.storage.get(key);
+          if (r && r.value !== undefined) {
+            const p = JSON.parse(r.value); valRef.current=p; setValState(p); loaded=true;
+            try { localStorage.setItem(key, r.value); } catch {}
           }
         }
       } catch {}
-      if (!loaded) {
-        const str = JSON.stringify(fallback);
-        try { localStorage.setItem(key, str); } catch {}
-        try {
-          if (typeof window.storage !== "undefined" && window.storage)
-            await window.storage.set(key, str);
-        } catch {}
+      if (!loaded && writeSeed) {
+        const s = JSON.stringify(fallback);
+        try { localStorage.setItem(key, s); } catch {}
+        try { if (typeof window.storage !== 'undefined' && window.storage) await window.storage.set(key, s); } catch {}
       }
       setReady(true);
     })();
   }, [key]);
-
-  const setVal = useCallback((newVal) => {
-    const next = typeof newVal === "function" ? newVal(valRef.current) : newVal;
-    valRef.current = next;
-    setValState(next);
-    const str = JSON.stringify(next);
-    // Write to localStorage immediately
-    try { localStorage.setItem(key, str); } catch {}
-    // Write to window.storage async
-    setTimeout(() => {
-      try {
-        if (typeof window.storage !== "undefined" && window.storage)
-          window.storage.set(key, str).catch(() => {});
-      } catch {}
-    }, 0);
+  const setVal = React.useCallback((nv) => {
+    const next = typeof nv === 'function' ? nv(valRef.current) : nv;
+    valRef.current = next; setValState(next);
+    const s = JSON.stringify(next);
+    try { localStorage.setItem(key, s); } catch {}
+    setTimeout(() => { try { if (typeof window.storage !== 'undefined' && window.storage) window.storage.set(key,s).catch(()=>{}); } catch {} }, 0);
   }, [key]);
-
   return [val, setVal, ready];
 }
 
@@ -630,9 +604,9 @@ function App() {
   const [properties, setProperties, propsReady] = useServerStorage("pc:properties", SEED.properties);
   const [expenses, setExpenses, expReady]       = useServerStorage("pc:expenses",   SEED.expenses);
   const [income, setIncome, incReady]           = useServerStorage("pc:income",     SEED.income);
-  const [boards, setBoards, boardsReady]         = useServerStorage("pc:boards",    SEED.boards);
-  const [lists, setLists, listsReady]            = useServerStorage("pc:lists",     SEED.lists);
-  const [cards, setCards, cardsReady]            = useServerStorage("pc:cards",     SEED.cards);
+  const [boards, setBoards, boardsReady] = useServerStorage("pc:boards", [], false);
+  const [lists, setLists, listsReady]   = useServerStorage("pc:lists",  [], false);
+  const [cards, setCards, cardsReady]   = useServerStorage("pc:cards",  [], false);
 
   const [selectedPropId, setSelectedPropId] = useState(null);
   const [propModal, setPropModal] = useState(null); // prop object
