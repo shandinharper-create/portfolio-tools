@@ -22,7 +22,6 @@
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const $ = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n || 0);
 const pct = (n, d) => d ? `${((n / d) * 100).toFixed(1)}%` : "—";
@@ -88,25 +87,32 @@ const SEED = {
 };
 
 // ─── Storage Hook (window.storage = server-side) ──────────────────────────────
-// Dual storage: localStorage (any browser) + window.storage (Claude.ai)
-// writeSeed=false means don't write fallback — prevents PC from overwriting Grasshopper's board/card data
+// Dual storage: localStorage + window.storage.
 function useServerStorage(key, fallback, writeSeed) {
   writeSeed = writeSeed !== false;
   const [val, setValState] = React.useState(fallback);
   const [ready, setReady]  = React.useState(false);
   const valRef = React.useRef(fallback);
+
+  const isArrFallback = Array.isArray(fallback);
+
   React.useEffect(() => {
+    const applyVal = (p) => {
+       if (p === null) return;
+       // Added safeguard: ensure arrays remain arrays
+       if (isArrFallback && !Array.isArray(p)) return; 
+       valRef.current = p;
+       setValState(p);
+    };
+
     let loaded = false;
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) { const p = JSON.parse(raw); valRef.current=p; setValState(p); loaded=true; }
-    } catch {}
+    try { const raw = localStorage.getItem(key); if (raw) { const p = JSON.parse(raw); applyVal(p); loaded=true; } } catch {}
     (async () => {
       try {
         if (typeof window.storage !== 'undefined' && window.storage) {
           const r = await window.storage.get(key);
           if (r && r.value !== undefined) {
-            const p = JSON.parse(r.value); valRef.current=p; setValState(p); loaded=true;
+            const p = JSON.parse(r.value); applyVal(p); loaded=true;
             try { localStorage.setItem(key, r.value); } catch {}
           }
         }
@@ -118,16 +124,28 @@ function useServerStorage(key, fallback, writeSeed) {
       }
       setReady(true);
     })();
+
+    // Added: Listen for cross-tab updates from Grasshopper!
+    const handleStorageChange = (e) => {
+      if (e.key === key && e.newValue) {
+        try { const p = JSON.parse(e.newValue); applyVal(p); } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [key]);
+
   const setVal = React.useCallback((nv) => {
     const next = typeof nv === 'function' ? nv(valRef.current) : nv;
-    valRef.current = next; setValState(next);
-    const s = JSON.stringify(next);
+    let finalNext = next;
+    // Extra safety measure
+    if (Array.isArray(fallback) && !Array.isArray(next)) finalNext = fallback; 
+    valRef.current = finalNext; setValState(finalNext);
+    const s = JSON.stringify(finalNext);
     try { localStorage.setItem(key, s); } catch {}
-    setTimeout(() => {
-      try { if (typeof window.storage !== 'undefined' && window.storage) window.storage.set(key,s).catch(()=>{}); } catch {}
-    }, 0);
+    setTimeout(() => { try { if (typeof window.storage !== 'undefined' && window.storage) window.storage.set(key,s).catch(()=>{}); } catch {} }, 0);
   }, [key]);
+
   return [val, setVal, ready];
 }
 
@@ -241,7 +259,6 @@ function PropertyCard({ prop, allProps, income, expenses, isSelected, onClick })
         transition:"all 0.2s", transform: isSelected ? "translateY(-1px)" : "none",
       }}
     >
-      {/* Monopoly-style color strip */}
       <div style={{ height:8, background:`linear-gradient(90deg, ${llcColor}, ${llcColor}88)`, position:"relative" }}>
         <div style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:8, fontWeight:900, color:"rgba(255,255,255,0.9)", letterSpacing:"0.15em", textTransform:"uppercase", fontFamily:"'IBM Plex Mono', monospace" }}>
           {prop.llc?.split(" ")[0]}
@@ -249,7 +266,6 @@ function PropertyCard({ prop, allProps, income, expenses, isSelected, onClick })
       </div>
 
       <div style={{ padding:"14px 16px" }}>
-        {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
           <div>
             <div style={{ fontFamily:"'Playfair Display', serif", fontSize:14, fontWeight:700, color:C.text, lineHeight:1.3 }}>{prop.name}</div>
@@ -258,7 +274,6 @@ function PropertyCard({ prop, allProps, income, expenses, isSelected, onClick })
           <Badge text={prop.status} color={statusColor} />
         </div>
 
-        {/* Stats grid — like Monopoly player stats */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:12 }}>
           {[
             { label:"Market Value", value:$(prop.marketValue), color:C.text },
@@ -274,7 +289,6 @@ function PropertyCard({ prop, allProps, income, expenses, isSelected, onClick })
 
         <ReserveBar current={prop.currentReserve} goal={prop.reserveGoal} />
 
-        {/* LLC tag */}
         <div style={{ marginTop:10, display:"flex", alignItems:"center", gap:6 }}>
           <div style={{ width:8, height:8, borderRadius:2, background:llcColor, flexShrink:0 }} />
           <span style={{ fontSize:9, color:C.muted, fontFamily:"'IBM Plex Mono', monospace" }}>{prop.llc}</span>
@@ -303,10 +317,8 @@ function PropertyModal({ prop, allProps, income, expenses, onClose, onSave, onDe
 
   return (
     <Modal title={prop.name} onClose={onClose} width={620}>
-      {/* LLC color indicator */}
       <div style={{ height:4, background:`linear-gradient(90deg,${llcColor},transparent)`, borderRadius:2, marginBottom:20, marginTop:-4 }} />
 
-      {/* Tab bar */}
       <div style={{ display:"flex", gap:4, marginBottom:20, borderBottom:`1px solid ${C.border}`, paddingBottom:0 }}>
         {tabs.map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
@@ -621,11 +633,15 @@ function App() {
 
   const ready = propsReady && expReady && incReady && boardsReady && listsReady && cardsReady;
 
+  // Auto-switch to default board if active one goes missing
   useEffect(() => {
-    if (boards.length > 0 && !activeBoardId) {
-      setActiveBoardId(boards[0].id);
+    if (ready && Array.isArray(boards) && boards.length > 0) {
+      const boardExists = boards.find(b => b.id === activeBoardId);
+      if (!boardExists) {
+        setActiveBoardId(boards[0].id);
+      }
     }
-  }, [boards, activeBoardId]);
+  }, [ready, boards, activeBoardId]);
 
   // ── Computed ─────────────────────────────────────────────────────────────────
   const totalValue   = useMemo(() => properties.reduce((s, p) => s + p.marketValue, 0), [properties]);
@@ -634,14 +650,17 @@ function App() {
   const totalExpenses = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
   const totalNOI     = totalIncome - totalExpenses;
 
-  const activeBoard = boards.find(b => b.id === activeBoardId);
-  // Normalize Grasshopper's board.background -> board.color so PC renders correctly
-  const normalizedBoards = boards.map(b => ({ ...b, color: b.color || b.background || C.gold }));
-  const activeLists = lists.filter(l => l.boardId === activeBoardId).sort((a, b) => a.order - b.order);
+  // Added array checks
+  const safeBoards = Array.isArray(boards) ? boards : [];
+  const safeLists = Array.isArray(lists) ? lists : [];
+  const safeCards = Array.isArray(cards) ? cards : [];
+
+  const activeBoard = safeBoards.find(b => b.id === activeBoardId);
+  const activeLists = safeLists.filter(l => l.boardId === activeBoardId).sort((a, b) => a.order - b.order);
 
   // Filter tasks by selected property
   const filteredCards = (listId) => {
-    const listCards = cards.filter(c => c.listId === listId && !c.archived);
+    const listCards = safeCards.filter(c => c.listId === listId && !c.archived);
     if (!selectedPropId) return listCards;
     return listCards.filter(c => c.propertyId === selectedPropId || !c.propertyId);
   };
@@ -684,7 +703,6 @@ function App() {
     const b = { id:uid(), title, color:C.gold };
     setBoards(prev => [...prev, b]);
     setActiveBoardId(b.id);
-    // Add default lists
     const newLists = ["To Do","In Progress","Done"].map((t, i) => ({ id:uid(), boardId:b.id, title:t, order:i }));
     setLists(prev => [...prev, ...newLists]);
   };
@@ -784,17 +802,19 @@ function App() {
           {/* Board header */}
           <div style={{ padding:"12px 16px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
             <div style={{ display:"flex", gap:4, overflowX:"auto" }}>
-              {normalizedBoards.map(b => {
-                const bColor = b.color;
+              {safeBoards.map(b => {
+                // Fallback color for boards imported from Grasshopper
+                const bColor = b.color || C.gold; 
                 return (
-                <button key={b.id} onClick={() => setActiveBoardId(b.id)} style={{
-                  padding:"6px 14px", borderRadius:6, border:`1px solid ${activeBoardId === b.id ? bColor : C.border}`,
-                  background: activeBoardId === b.id ? `${bColor}18` : "transparent",
-                  color: activeBoardId === b.id ? bColor : C.muted,
-                  fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans', sans-serif",
-                  letterSpacing:"0.04em", whiteSpace:"nowrap", transition:"all 0.15s",
-                }}>{b.title}</button>
-              )})}
+                  <button key={b.id} onClick={() => setActiveBoardId(b.id)} style={{
+                    padding:"6px 14px", borderRadius:6, border:`1px solid ${activeBoardId === b.id ? bColor : C.border}`,
+                    background: activeBoardId === b.id ? `${bColor}18` : "transparent",
+                    color: activeBoardId === b.id ? bColor : C.muted,
+                    fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans', sans-serif",
+                    letterSpacing:"0.04em", whiteSpace:"nowrap", transition:"all 0.15s",
+                  }}>{b.title}</button>
+                )
+              })}
             </div>
             <Btn variant="ghost" size="sm" onClick={addBoard} style={{ marginLeft:"auto", flexShrink:0 }}>+ Board</Btn>
           </div>
