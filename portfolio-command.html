@@ -3,3943 +3,860 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grasshopper</title>
+  <title>Portfolio Command</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      overflow: hidden;
-    }
-
-    #root {
-      width: 100vw;
-      height: 100vh;
-    }
-
-    .app {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      transition: background 0.3s;
-    }
-
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      font-size: 1.5rem;
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 2rem;
-      gap: 1rem;
-      flex-shrink: 0;
-    }
-
-    .header-left, .header-right {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-
-    .board-select {
-      padding: 0.5rem;
-      border: 1px solid;
-      border-radius: 4px;
-      font-size: 1rem;
-      min-width: 200px;
-    }
-
-    .add-board-form {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
-
-    .add-board-form input {
-      padding: 0.5rem;
-      border: 1px solid;
-      border-radius: 4px;
-      font-size: 1rem;
-      min-width: 200px;
-    }
-
-    .btn-primary, .btn-secondary, .btn-danger, .btn-icon, .btn-add-card, .btn-add-list {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: #3b82f6;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #2563eb;
-    }
-
-    .btn-primary:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
-    }
-
-    .btn-secondary {
-      background: #f1f5f9;
-      color: #1e293b;
-    }
-
-    .btn-secondary:hover {
-      background: #e2e8f0;
-    }
-
-    .btn-danger {
-      background: #ef4444;
-      color: white;
-    }
-
-    .btn-danger:hover {
-      background: #dc2626;
-    }
-
-    .btn-icon {
-      padding: 0.25rem;
-      background: transparent;
-    }
-
-    .btn-icon:hover {
-      background: rgba(0, 0, 0, 0.1);
-    }
-
-    .settings-panel, .templates-panel {
-      padding: 2rem;
-      max-height: 500px;
-      overflow-y: auto;
-      flex-shrink: 0;
-    }
-
-    .settings-section {
-      margin: 1.5rem 0;
-    }
-
-    .settings-section label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .settings-section input, .settings-section textarea {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-
-    .backgrounds-grid, .color-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-
-    .bg-btn, .color-btn {
-      height: 60px;
-      border: 2px solid transparent;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .bg-btn:hover, .color-btn:hover {
-      transform: scale(1.05);
-    }
-
-    .bg-btn.active, .color-btn.active {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-    }
-
-    .theme-buttons {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .theme-btn {
-      padding: 0.5rem 1rem;
-      border: 2px solid #e2e8f0;
-      border-radius: 4px;
-      background: white;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .theme-btn.active {
-      border-color: #3b82f6;
-      background: #dbeafe;
-    }
-
-    .users-list, .labels-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .user-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.25rem 0.5rem;
-      background: #dbeafe;
-      color: #1e40af;
-      border-radius: 4px;
-      font-size: 0.85rem;
-    }
-
-    .templates-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-
-    .template-card {
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .template-card h4 {
-      margin-bottom: 0.5rem;
-    }
-
-    .template-card p {
-      font-size: 0.85rem;
-      opacity: 0.8;
-      margin-bottom: 1rem;
-    }
-
-    .template-actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex: 1;
-      text-align: center;
-      padding: 2rem;
-    }
-
-    .empty-state h2 {
-      margin-bottom: 1rem;
-    }
-
-    .board {
-      flex: 1;
-      padding: 2rem;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .lists-container {
-      display: flex;
-      gap: 1rem;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding-bottom: 1rem;
-      flex: 1;
-    }
-
-    .list {
-      min-width: 300px;
-      max-width: 300px;
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 8px;
-      padding: 1rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      display: flex;
-      flex-direction: column;
-      max-height: 100%;
-    }
-
-    .list-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      flex-shrink: 0;
-    }
-
-    .list-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-      flex: 1;
-    }
-
-    .list-title:hover {
-      color: #3b82f6;
-    }
-
-    .card-count {
-      font-size: 0.85rem;
-      opacity: 0.6;
-      font-weight: normal;
-    }
-
-    .list-title-input {
-      width: 100%;
-      padding: 0.25rem;
-      border: 2px solid #3b82f6;
-      border-radius: 4px;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-
-    .cards {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-      min-height: 20px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    .card {
-      padding: 0.75rem;
-      background: white;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      cursor: grab;
-      transition: all 0.2s;
-      flex-shrink: 0;
-    }
-
-    .card:hover {
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    }
-
-    .card:active {
-      cursor: grabbing;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .card-title {
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      flex: 1;
-      line-height: 1.4;
-    }
-
-    .card-title:hover {
-      color: #3b82f6;
-    }
-
-    .card-title-input {
-      width: 100%;
-      padding: 0.25rem;
-      border: 2px solid #3b82f6;
-      border-radius: 4px;
-      font-size: 1rem;
-      font-weight: 500;
-    }
-
-    .card-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.25rem 0.5rem;
-      background: #f1f5f9;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      color: #64748b;
-    }
-
-    .card-labels, .card-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.25rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .label {
-      padding: 0.15rem 0.4rem;
-      border-radius: 3px;
-      font-size: 0.7rem;
-      font-weight: 500;
-      line-height: 1.2;
-    }
-
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.25rem 0.5rem;
-      background: #e0f2fe;
-      color: #0369a1;
-      border-radius: 4px;
-      font-size: 0.75rem;
-    }
-
-    .card-details {
-      margin-top: 1rem;
-    }
-
-    .card-section {
-      margin: 1rem 0;
-    }
-
-    .card-section label {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-weight: 600;
-      font-size: 0.85rem;
-      margin-bottom: 0.5rem;
-      color: #475569;
-    }
-
-    .card-section input, .card-section textarea, .card-section select {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      font-size: 0.9rem;
-    }
-
-    .card-section textarea {
-      resize: vertical;
-      min-height: 60px;
-    }
-
-    .card-description {
-      padding: 0.5rem;
-      min-height: 120px;
-      background: #f8fafc;
-      border-radius: 4px;
-      cursor: pointer;
-      color: #64748b;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-
-    .card-description.has-content {
-      color: #1e293b;
-    }
-
-    .card-description strong {
-      font-weight: 700;
-    }
-
-    .card-description em {
-      font-style: italic;
-    }
-
-    .card-description u {
-      text-decoration: underline;
-    }
-
-    .card-description ul {
-      margin-left: 1.5rem;
-      margin-top: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .card-description li {
-      margin-bottom: 0.25rem;
-    }
-
-    .format-toolbar {
-      display: flex;
-      gap: 0.25rem;
-      padding: 0.5rem;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-bottom: none;
-      border-radius: 4px 4px 0 0;
-      flex-wrap: wrap;
-    }
-
-    .format-btn {
-      padding: 0.4rem;
-      border: 1px solid #e2e8f0;
-      background: white;
-      border-radius: 3px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-
-    .format-btn:hover {
-      background: #f1f5f9;
-      border-color: #cbd5e1;
-    }
-
-    .format-btn.active {
-      background: #dbeafe;
-      border-color: #3b82f6;
-      color: #3b82f6;
-    }
-
-    .format-textarea {
-      border-radius: 0 0 4px 4px !important;
-      border-top: none !important;
-    }
-
-    .card-description:hover {
-      background: #f1f5f9;
-    }
-
-    .assignees-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .assignee {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.25rem 0.5rem;
-      background: #dbeafe;
-      color: #1e40af;
-      border-radius: 4px;
-      font-size: 0.85rem;
-    }
-
-    .add-assignee {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .assignee-select, .assignee-input {
-      flex: 1;
-    }
-
-    .labels-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.5rem;
-    }
-
-    .label-btn {
-      padding: 0.4rem;
-      border: 2px solid transparent;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 500;
-      transition: all 0.2s;
-    }
-
-    .label-btn:hover {
-      opacity: 0.8;
-    }
-
-    .label-btn.active {
-      border-color: #1e293b;
-    }
-
-    .checklist {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .checklist-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .checklist-item input[type="checkbox"] {
-      width: auto;
-    }
-
-    .checklist-item input[type="text"] {
-      flex: 1;
-    }
-
-    .checklist-item input[type="text"].completed {
-      text-decoration: line-through;
-      color: #94a3b8;
-    }
-
-    .custom-field {
-      display: grid;
-      grid-template-columns: 1fr 1fr 2fr auto;
-      gap: 0.5rem;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
-
-    .field-name {
-      font-weight: 600;
-    }
-
-    .field-type {
-      font-size: 0.85rem;
-    }
-
-    .comments {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .comment {
-      padding: 0.5rem;
-      background: #f8fafc;
-      border-radius: 4px;
-      font-size: 0.85rem;
-    }
-
-    .comment strong {
-      color: #3b82f6;
-      margin-right: 0.5rem;
-    }
-
-    .comment-time {
-      font-size: 0.75rem;
-      color: #94a3b8;
-    }
-
-    .comment p {
-      margin-top: 0.25rem;
-    }
-
-    .card-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid #e2e8f0;
-    }
-
-    .add-card-form, .add-list-form {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      flex-shrink: 0;
-    }
-
-    .add-card-form input, .add-list-form input {
-      padding: 0.5rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .btn-add-card, .btn-add-list {
-      width: 100%;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.05);
-      color: #64748b;
-      flex-shrink: 0;
-    }
-
-    .btn-add-card:hover, .btn-add-list:hover {
-      background: rgba(0, 0, 0, 0.1);
-    }
-
-    .btn-add-list {
-      min-width: 300px;
-      padding: 1rem;
-      font-size: 1rem;
-    }
-
-    .archived-section {
-      margin-top: 2rem;
-      padding: 1.5rem;
-      border-radius: 8px;
-      flex-shrink: 0;
-    }
-
-    .archived-section h3 {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .archived-cards {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .archived-card {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem;
-      background: rgba(0, 0, 0, 0.05);
-      border-radius: 4px;
-    }
-
-    .archived-card small {
-      opacity: 0.6;
-      margin-left: 0.5rem;
-    }
-
-    .archived-card > div {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    svg {
-      flex-shrink: 0;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 2rem;
-    }
-
-    .modal-content {
-      background: white;
-      border-radius: 8px;
-      width: 100%;
-      max-width: 800px;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-      position: relative;
-    }
-
-    .modal-header {
-      padding: 2rem 2rem 1rem 2rem;
-      border-bottom: 1px solid #e2e8f0;
-      position: sticky;
-      top: 0;
-      background: white;
-      z-index: 10;
-    }
-
-    .modal-header.has-cover {
-      padding-top: 0;
-      border-bottom: none;
-    }
-
-    .card-cover {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-      border-radius: 8px 8px 0 0;
-      cursor: pointer;
-    }
-
-    .cover-overlay {
-      position: relative;
-    }
-
-    .cover-actions {
-      position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      display: flex;
-      gap: 0.5rem;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .cover-overlay:hover .cover-actions {
-      opacity: 1;
-    }
-
-    .cover-btn {
-      padding: 0.5rem;
-      background: rgba(0, 0, 0, 0.6);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: 0.85rem;
-      transition: background 0.2s;
-    }
-
-    .cover-btn:hover {
-      background: rgba(0, 0, 0, 0.8);
-    }
-
-    .modal-title {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      padding-right: 2rem;
-    }
-
-    .modal-close {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      padding: 0.5rem;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: background 0.2s;
-    }
-
-    .modal-close:hover {
-      background: #f1f5f9;
-    }
-
-    .modal-body {
-      padding: 2rem;
-    }
-
-    .modal-section {
-      margin-bottom: 2rem;
-    }
-
-    .modal-section-title {
-      font-weight: 600;
-      font-size: 0.9rem;
-      margin-bottom: 0.75rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: #475569;
-    }
-
-    .modal-footer {
-      padding: 1.5rem 2rem;
-      border-top: 1px solid #e2e8f0;
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      position: sticky;
-      bottom: 0;
-      background: white;
-    }
-
-    .attachments-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .attachment-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem;
-      background: #f8fafc;
-      border-radius: 4px;
-      border: 1px solid #e2e8f0;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .attachment-item:hover {
-      background: #f1f5f9;
-      border-color: #cbd5e1;
-    }
-
-    .attachment-icon {
-      flex-shrink: 0;
-      color: #64748b;
-    }
-
-    .attachment-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .attachment-name {
-      font-weight: 500;
-      font-size: 0.9rem;
-      color: #1e293b;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .attachment-meta {
-      font-size: 0.75rem;
-      color: #64748b;
-      margin-top: 0.25rem;
-    }
-
-    .attachment-actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .file-input-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: #f1f5f9;
-      color: #1e293b;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: all 0.2s;
-      border: none;
-    }
-
-    .file-input-label:hover {
-      background: #e2e8f0;
-    }
-
-    .file-input-hidden {
-      display: none;
-    }
-
-    .calendar-view {
-      background: white;
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .calendar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-    }
-
-    .calendar-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
-
-    .calendar-nav {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 0.5rem;
-    }
-
-    .calendar-day-header {
-      text-align: center;
-      font-weight: 600;
-      font-size: 0.85rem;
-      padding: 0.5rem;
-      color: #64748b;
-    }
-
-    .calendar-day {
-      min-height: 100px;
-      padding: 0.5rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      background: white;
-      position: relative;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .calendar-day:hover {
-      background: #f8fafc;
-      border-color: #cbd5e1;
-    }
-
-    .calendar-day.other-month {
-      background: #f8fafc;
-      color: #94a3b8;
-    }
-
-    .calendar-day.today {
-      border-color: #3b82f6;
-      border-width: 2px;
-      background: #eff6ff;
-    }
-
-    .calendar-day-number {
-      font-size: 0.85rem;
-      font-weight: 500;
-      margin-bottom: 0.25rem;
-    }
-
-    .calendar-events {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-
-    .calendar-event {
-      font-size: 0.75rem;
-      padding: 0.25rem 0.35rem;
-      border-radius: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      cursor: pointer;
-    }
-
-    .calendar-event.card-due {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .calendar-event.appointment {
-      background: #dbeafe;
-      color: #1e40af;
-    }
-
-    .calendar-sidebar {
-      background: white;
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .event-form {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .event-form input,
-    .event-form textarea,
-    .event-form select {
-      padding: 0.5rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      font-size: 0.9rem;
-    }
-
-    .event-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-top: 1rem;
-    }
-
-    .event-item {
-      padding: 0.75rem;
-      background: #f8fafc;
-      border-radius: 4px;
-      border-left: 3px solid #3b82f6;
-    }
-
-    .event-item-title {
-      font-weight: 500;
-      margin-bottom: 0.25rem;
-    }
-
-    .event-item-meta {
-      font-size: 0.75rem;
-      color: #64748b;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; }
+    #root { width: 100vw; height: 100vh; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a2a40; border-radius: 2px; }
+    select option { background: #13131f; }
   </style>
 </head>
 <body>
   <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
-  <script>
-const {
-  useState,
-  useEffect,
-  useRef
-} = React;
 
-// ─── Shared storage: syncs with Portfolio Command via window.storage ───────
-const PC_KEYS = {
-  boards: 'pc:boards',
-  lists: 'pc:lists',
-  cards: 'pc:cards',
-  templates: 'pc:templates'
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const $ = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n || 0);
+const pct = (n, d) => d ? `${((n / d) * 100).toFixed(1)}%` : "—";
+const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+const today = () => new Date().toISOString().slice(0, 10);
+
+const LLC_PALETTE = ["#b5651d","#2196a6","#9c4a8c","#c87941","#c0392b","#8e6bbf","#2e7d4a","#1a5a8a","#b8860b","#5d6d7e"];
+const getLLCColor = (llcName, allProps) => {
+  const allLLCs = [...new Set(allProps.map(p => p.llc).filter(Boolean))];
+  const idx = allLLCs.indexOf(llcName);
+  return LLC_PALETTE[idx % LLC_PALETTE.length] || "#555";
 };
 
-// SVG Icons as components
-const Plus = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("line", {
-  x1: "12",
-  y1: "5",
-  x2: "12",
-  y2: "19"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "5",
-  y1: "12",
-  x2: "19",
-  y2: "12"
-}));
-const X = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("line", {
-  x1: "18",
-  y1: "6",
-  x2: "6",
-  y2: "18"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "6",
-  y1: "6",
-  x2: "18",
-  y2: "18"
-}));
-const Trash2 = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("polyline", {
-  points: "3 6 5 6 21 6"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-}));
-const Archive = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("polyline", {
-  points: "21 8 21 21 3 21 3 8"
-}), /*#__PURE__*/React.createElement("rect", {
-  x: "1",
-  y: "3",
-  width: "22",
-  height: "5"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "10",
-  y1: "12",
-  x2: "14",
-  y2: "12"
-}));
-const Calendar = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("rect", {
-  x: "3",
-  y: "4",
-  width: "18",
-  height: "18",
-  rx: "2",
-  ry: "2"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "16",
-  y1: "2",
-  x2: "16",
-  y2: "6"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "8",
-  y1: "2",
-  x2: "8",
-  y2: "6"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "3",
-  y1: "10",
-  x2: "21",
-  y2: "10"
-}));
-const Tag = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "7",
-  y1: "7",
-  x2: "7.01",
-  y2: "7"
-}));
-const User = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
-}), /*#__PURE__*/React.createElement("circle", {
-  cx: "12",
-  cy: "7",
-  r: "4"
-}));
-const CheckSquare = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("polyline", {
-  points: "9 11 12 14 22 4"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
-}));
-const MessageSquare = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-}));
-const Copy = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("rect", {
-  x: "9",
-  y: "9",
-  width: "13",
-  height: "13",
-  rx: "2",
-  ry: "2"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-}));
-const Settings = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("circle", {
-  cx: "12",
-  cy: "12",
-  r: "3"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M12 1v6m0 6v6m8.66-10a10 10 0 0 1-2.83 6.83m-11.66 0A10 10 0 0 1 3.34 10M21 12h-6m-6 0H3"
-}));
-const Palette = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("circle", {
-  cx: "13.5",
-  cy: "6.5",
-  r: ".5"
-}), /*#__PURE__*/React.createElement("circle", {
-  cx: "17.5",
-  cy: "10.5",
-  r: ".5"
-}), /*#__PURE__*/React.createElement("circle", {
-  cx: "8.5",
-  cy: "7.5",
-  r: ".5"
-}), /*#__PURE__*/React.createElement("circle", {
-  cx: "6.5",
-  cy: "12.5",
-  r: ".5"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"
-}));
-const ChevronDown = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("polyline", {
-  points: "6 9 12 15 18 9"
-}));
-const Clock = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("circle", {
-  cx: "12",
-  cy: "12",
-  r: "10"
-}), /*#__PURE__*/React.createElement("polyline", {
-  points: "12 6 12 12 16 14"
-}));
-const Moon = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-}));
-const Sun = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("circle", {
-  cx: "12",
-  cy: "12",
-  r: "5"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "12",
-  y1: "1",
-  x2: "12",
-  y2: "3"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "12",
-  y1: "21",
-  x2: "12",
-  y2: "23"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "4.22",
-  y1: "4.22",
-  x2: "5.64",
-  y2: "5.64"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "18.36",
-  y1: "18.36",
-  x2: "19.78",
-  y2: "19.78"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "1",
-  y1: "12",
-  x2: "3",
-  y2: "12"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "21",
-  y1: "12",
-  x2: "23",
-  y2: "12"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "4.22",
-  y1: "19.78",
-  x2: "5.64",
-  y2: "18.36"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "18.36",
-  y1: "5.64",
-  x2: "19.78",
-  y2: "4.22"
-}));
-const Bold = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"
-}));
-const Italic = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("line", {
-  x1: "19",
-  y1: "4",
-  x2: "10",
-  y2: "4"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "14",
-  y1: "20",
-  x2: "5",
-  y2: "20"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "15",
-  y1: "4",
-  x2: "9",
-  y2: "20"
-}));
-const Underline = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "4",
-  y1: "21",
-  x2: "20",
-  y2: "21"
-}));
-const ListIcon = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("line", {
-  x1: "8",
-  y1: "6",
-  x2: "21",
-  y2: "6"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "8",
-  y1: "12",
-  x2: "21",
-  y2: "12"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "8",
-  y1: "18",
-  x2: "21",
-  y2: "18"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "3",
-  y1: "6",
-  x2: "3.01",
-  y2: "6"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "3",
-  y1: "12",
-  x2: "3.01",
-  y2: "12"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "3",
-  y1: "18",
-  x2: "3.01",
-  y2: "18"
-}));
-const Paperclip = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
-}));
-const Download = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-}), /*#__PURE__*/React.createElement("polyline", {
-  points: "7 10 12 15 17 10"
-}), /*#__PURE__*/React.createElement("line", {
-  x1: "12",
-  y1: "15",
-  x2: "12",
-  y2: "3"
-}));
-const Edit2 = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-}));
-const ChevronLeft = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("polyline", {
-  points: "15 18 9 12 15 6"
-}));
-const ChevronRight = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("polyline", {
-  points: "9 18 15 12 9 6"
-}));
-const Image = ({
-  size = 24
-}) => /*#__PURE__*/React.createElement("svg", {
-  width: size,
-  height: size,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2",
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-}, /*#__PURE__*/React.createElement("rect", {
-  x: "3",
-  y: "3",
-  width: "18",
-  height: "18",
-  rx: "2",
-  ry: "2"
-}), /*#__PURE__*/React.createElement("circle", {
-  cx: "8.5",
-  cy: "8.5",
-  r: "1.5"
-}), /*#__PURE__*/React.createElement("polyline", {
-  points: "21 15 16 10 5 21"
-}));
+const EXPENSE_CATS = ["Mortgage","Insurance","Taxes","Repairs","CapEx","Renovation","Utilities","Management","HOA","Vacancy","Legal","Accounting","Other"];
+const PROP_TYPES = ["Single Family","Duplex","Triplex","Quadplex","Multi-Family","Condo","Commercial","Land"];
+const STATUSES = ["Occupied","Vacant","Partially Occupied","Under Renovation"];
+const PAY_METHODS = ["Check","Credit Card","Debit Card","Cash","Zelle","ACH / Bank Transfer","Other"];
 
-// Color palettes
-const LABEL_COLORS = [{
-  name: 'Priority 1 - Critical',
-  color: '#991b1b',
-  bg: '#fee2e2'
-}, {
-  name: 'Priority 2 - High',
-  color: '#dc2626',
-  bg: '#fecaca'
-}, {
-  name: 'Priority 1 - Medium',
-  color: '#a16207',
-  bg: '#fef9c3'
-}, {
-  name: 'Priority 2 - Normal',
-  color: '#ca8a04',
-  bg: '#fef08a'
-}, {
-  name: 'Priority 1 - Low',
-  color: '#15803d',
-  bg: '#dcfce7'
-}, {
-  name: 'Priority 2 - Minor',
-  color: '#16a34a',
-  bg: '#bbf7d0'
-}];
-const BOARD_BACKGROUNDS = [{
-  name: 'Ocean',
-  color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-}, {
-  name: 'Sunset',
-  color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-}, {
-  name: 'Forest',
-  color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-}, {
-  name: 'Desert',
-  color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-}, {
-  name: 'Night',
-  color: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
-}, {
-  name: 'Aurora',
-  color: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
-}, {
-  name: 'Fire',
-  color: 'linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%)'
-}, {
-  name: 'Sky',
-  color: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)'
-}];
-const THEMES = {
-  light: {
-    name: 'Light',
-    bg: '#f8fafc',
-    text: '#1e293b',
-    cardBg: '#ffffff',
-    border: '#e2e8f0'
-  },
-  dark: {
-    name: 'Dark',
-    bg: '#0f172a',
-    text: '#f1f5f9',
-    cardBg: '#1e293b',
-    border: '#334155'
-  },
-  warm: {
-    name: 'Warm',
-    bg: '#fef3c7',
-    text: '#78350f',
-    cardBg: '#fffbeb',
-    border: '#fde68a'
-  }
+const STATUS_COLOR = { "Occupied": "#4caf82", "Vacant": "#e06c75", "Partially Occupied": "#e5a84b", "Under Renovation": "#8e6bbf" };
+const PRIORITY_COLOR = { "High": "#e06c75", "Medium": "#e5a84b", "Low": "#4caf82" };
+
+// ─── Seed Data ─────────────────────────────────────────────────────────────────
+const SEED = {
+  properties: [
+    { id:"p1", name:"1842 Harlem Ave", type:"Single Family", units:1, address:"1842 Harlem Ave, Baltimore MD 21217", purchasePrice:185000, marketValue:212000, llc:"Brick & Mortar LLC", status:"Occupied", notes:"", reserveGoal:10000, currentReserve:3200 },
+    { id:"p2", name:"307 E Fayette St", type:"Duplex", units:2, address:"307 E Fayette St, Baltimore MD 21202", purchasePrice:220000, marketValue:268000, llc:"East Side Holdings LLC", status:"Occupied", notes:"", reserveGoal:10000, currentReserve:7800 },
+    { id:"p3", name:"914 N Bond St", type:"Single Family", units:1, address:"914 N Bond St, Baltimore MD 21205", purchasePrice:95000, marketValue:130000, llc:"Bond Street Props LLC", status:"Vacant", notes:"Needs roof repair before relisting", reserveGoal:10000, currentReserve:-1200 },
+  ],
+  expenses: [
+    { id:"e1", propertyId:"p1", category:"Mortgage", amount:1050, date:"2026-02-01", note:"Monthly P&I", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer" },
+    { id:"e2", propertyId:"p1", category:"Insurance", amount:95, date:"2026-02-01", note:"Monthly escrow", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer" },
+    { id:"e3", propertyId:"p1", category:"Repairs", amount:320, date:"2026-01-15", note:"HVAC belt + filter", recurring:false, vendor:"City HVAC", paymentMethod:"Check" },
+    { id:"e4", propertyId:"p2", category:"Mortgage", amount:1280, date:"2026-02-01", note:"Monthly P&I", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer" },
+    { id:"e5", propertyId:"p2", category:"Insurance", amount:145, date:"2026-02-01", note:"Monthly escrow", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer" },
+    { id:"e6", propertyId:"p2", category:"Repairs", amount:850, date:"2026-01-28", note:"Unit 2 plumbing leak", recurring:false, vendor:"Joe's Plumbing", paymentMethod:"Check" },
+    { id:"e7", propertyId:"p3", category:"Mortgage", amount:610, date:"2026-02-01", note:"Monthly P&I", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer" },
+    { id:"e8", propertyId:"p3", category:"Taxes", amount:210, date:"2026-01-20", note:"Q1 property tax", recurring:false, vendor:"Baltimore City", paymentMethod:"Check" },
+  ],
+  income: [
+    { id:"i1", propertyId:"p1", amount:1450, date:"2026-02-01", note:"Monthly rent", tenant:"Williams Family" },
+    { id:"i2", propertyId:"p2", amount:950, date:"2026-02-01", note:"Unit 1 rent", tenant:"Marcus T." },
+    { id:"i3", propertyId:"p2", amount:875, date:"2026-02-03", note:"Unit 2 rent", tenant:"Sandra R." },
+  ],
+  boards: [
+    { id:"b1", title:"Property Management", color:"#c8a84b" },
+    { id:"b2", title:"Acquisitions", color:"#4caf82" },
+  ],
+  lists: [
+    { id:"l1", boardId:"b1", title:"To Do", order:0 },
+    { id:"l2", boardId:"b1", title:"In Progress", order:1 },
+    { id:"l3", boardId:"b1", title:"Done", order:2 },
+    { id:"l4", boardId:"b2", title:"Researching", order:0 },
+    { id:"l5", boardId:"b2", title:"Due Diligence", order:1 },
+    { id:"l6", boardId:"b2", title:"Closed", order:2 },
+  ],
+  cards: [
+    { id:"c1", listId:"l1", title:"Schedule roof inspection — 914 N Bond", description:"Get 3 quotes before relist", dueDate:"2026-03-15", priority:"High", propertyId:"p3", labels:[], checklist:[], archived:false },
+    { id:"c2", listId:"l1", title:"Renew insurance — Harlem Ave", description:"Policy expires April 1", dueDate:"2026-03-25", priority:"Medium", propertyId:"p1", labels:[], checklist:[], archived:false },
+    { id:"c3", listId:"l2", title:"Fix plumbing — 307 E Fayette Unit 2", description:"Joe's Plumbing confirmed for Monday", dueDate:"2026-03-05", priority:"High", propertyId:"p2", labels:[], checklist:[], archived:false },
+    { id:"c4", listId:"l3", title:"Collect Feb rent — All properties", description:"All three collected", dueDate:"2026-02-05", priority:"Low", propertyId:null, labels:[], checklist:[], archived:false },
+    { id:"c5", listId:"l4", title:"Research N Patterson Park Ave", description:"Off-market duplex lead from Marcus", dueDate:"", priority:"Medium", propertyId:null, labels:[], checklist:[], archived:false },
+  ],
 };
 
-// Card component
-const Card = ({
-  card,
-  onUpdate,
-  onDelete,
-  onArchive,
-  boardLabels,
-  boardUsers,
-  onSaveAsTemplate,
-  onOpenModal
-}) => {
-  const cardColor = card.color || '#ffffff';
-  const hasDetails = card.description || card.dueDate || card.labels && card.labels.length > 0 || card.tags && card.tags.length > 0 || card.assignees && card.assignees.length > 0 || card.checklist && card.checklist.length > 0 || card.comments && card.comments.length > 0 || card.customFields && card.customFields.length > 0 || card.attachments && card.attachments.length > 0;
-  return /*#__PURE__*/React.createElement("div", {
-    className: "card",
-    style: {
-      backgroundColor: cardColor
-    },
-    draggable: true,
-    onDragStart: e => {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('cardId', card.id);
-    },
-    onClick: () => onOpenModal(card)
-  }, card.coverImage && /*#__PURE__*/React.createElement("img", {
-    src: card.coverImage,
-    alt: "Cover",
-    style: {
-      width: '100%',
-      height: '120px',
-      objectFit: 'cover',
-      borderRadius: '6px 6px 0 0',
-      marginBottom: '0.5rem',
-      marginTop: '-0.75rem',
-      marginLeft: '-0.75rem',
-      marginRight: '-0.75rem',
-      width: 'calc(100% + 1.5rem)'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "card-header"
-  }, /*#__PURE__*/React.createElement("h4", {
-    className: "card-title"
-  }, card.title)), hasDetails && /*#__PURE__*/React.createElement("div", {
-    className: "card-badges"
-  }, card.dueDate && /*#__PURE__*/React.createElement("span", {
-    className: "badge"
-  }, /*#__PURE__*/React.createElement(Clock, {
-    size: 12
-  }), " ", new Date(card.dueDate).toLocaleDateString()), card.checklist && card.checklist.length > 0 && /*#__PURE__*/React.createElement("span", {
-    className: "badge"
-  }, /*#__PURE__*/React.createElement(CheckSquare, {
-    size: 12
-  }), " ", card.checklist.filter(i => i.done).length, "/", card.checklist.length), card.attachments && card.attachments.length > 0 && /*#__PURE__*/React.createElement("span", {
-    className: "badge"
-  }, /*#__PURE__*/React.createElement(Paperclip, {
-    size: 12
-  }), " ", card.attachments.length), card.comments && card.comments.length > 0 && /*#__PURE__*/React.createElement("span", {
-    className: "badge"
-  }, /*#__PURE__*/React.createElement(MessageSquare, {
-    size: 12
-  }), " ", card.comments.length)), card.labels && card.labels.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "card-labels"
-  }, card.labels.map(labelId => {
-    const label = boardLabels.find(l => l.id === labelId);
-    return label ? /*#__PURE__*/React.createElement("span", {
-      key: labelId,
-      className: "label",
-      style: {
-        backgroundColor: label.bg,
-        color: label.color
-      }
-    }, label.name) : null;
-  })), card.tags && card.tags.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "card-tags"
-  }, card.tags.slice(0, 2).map(tag => /*#__PURE__*/React.createElement("span", {
-    key: tag,
-    className: "tag"
-  }, tag)), card.tags.length > 2 && /*#__PURE__*/React.createElement("span", {
-    className: "tag"
-  }, "+", card.tags.length - 2, " more")));
-};
-
-// Card Modal component
-const CardModal = ({
-  card,
-  onClose,
-  onUpdate,
-  onDelete,
-  onArchive,
-  boardLabels,
-  boardUsers,
-  onSaveAsTemplate
-}) => {
-  const [editingField, setEditingField] = useState(null);
-  const [editValue, setEditValue] = useState('');
-  const textareaRef = useRef(null);
-  const startEdit = (field, value) => {
-    setEditingField(field);
-    setEditValue(value || '');
-  };
-  const saveEdit = () => {
-    if (editingField) {
-      onUpdate({
-        ...card,
-        [editingField]: editValue
-      });
-      setEditingField(null);
-    }
-  };
-  const applyFormat = formatType => {
-    if (!textareaRef.current) return;
-    const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = editValue.substring(start, end);
-    let newText = editValue;
-    let newCursorPos = end;
-    if (selectedText) {
-      // Apply formatting to selected text
-      let formattedText = selectedText;
-      switch (formatType) {
-        case 'bold':
-          formattedText = `**${selectedText}**`;
-          newCursorPos = start + formattedText.length;
-          break;
-        case 'italic':
-          formattedText = `*${selectedText}*`;
-          newCursorPos = start + formattedText.length;
-          break;
-        case 'underline':
-          formattedText = `__${selectedText}__`;
-          newCursorPos = start + formattedText.length;
-          break;
-        case 'bullet':
-          formattedText = selectedText.split('\n').map(line => line.trim() ? `• ${line}` : line).join('\n');
-          newCursorPos = start + formattedText.length;
-          break;
-      }
-      newText = editValue.substring(0, start) + formattedText + editValue.substring(end);
-    } else {
-      // Insert formatting markers at cursor
-      switch (formatType) {
-        case 'bold':
-          newText = editValue.substring(0, start) + '****' + editValue.substring(end);
-          newCursorPos = start + 2;
-          break;
-        case 'italic':
-          newText = editValue.substring(0, start) + '**' + editValue.substring(end);
-          newCursorPos = start + 1;
-          break;
-        case 'underline':
-          newText = editValue.substring(0, start) + '____' + editValue.substring(end);
-          newCursorPos = start + 2;
-          break;
-        case 'bullet':
-          newText = editValue.substring(0, start) + '• ' + editValue.substring(end);
-          newCursorPos = start + 2;
-          break;
-      }
-    }
-    setEditValue(newText);
-
-    // Restore cursor position
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    }, 0);
-  };
-  const renderFormattedDescription = text => {
-    if (!text) return 'Click to add description...';
-
-    // Simple markdown-style rendering - using simpler regex
-    let formatted = text;
-
-    // Bold: **text** (but not *** which would be italic inside bold)
-    formatted = formatted.replace(/\*\*([^\*]+?)\*\*/g, '<strong>$1</strong>');
-
-    // Italic: *text* (single asterisk, not double)
-    formatted = formatted.replace(/\*([^\*]+?)\*/g, '<em>$1</em>');
-
-    // Underline: __text__
-    formatted = formatted.replace(/__([^_]+?)__/g, '<u>$1</u>');
-
-    // Bullet points
-    const lines = formatted.split('\n');
-    let inList = false;
-    let result = [];
-    for (let line of lines) {
-      if (line.trim().startsWith('•')) {
-        if (!inList) {
-          result.push('<ul>');
-          inList = true;
-        }
-        result.push(`<li>${line.trim().substring(1).trim()}</li>`);
-      } else {
-        if (inList) {
-          result.push('</ul>');
-          inList = false;
-        }
-        result.push(line);
-      }
-    }
-    if (inList) {
-      result.push('</ul>');
-    }
-    formatted = result.join('\n');
-    return /*#__PURE__*/React.createElement("div", {
-      dangerouslySetInnerHTML: {
-        __html: formatted
-      }
-    });
-  };
-  const addChecklistItem = () => {
-    const checklist = [...(card.checklist || []), {
-      id: Date.now(),
-      text: '',
-      done: false
-    }];
-    onUpdate({
-      ...card,
-      checklist
-    });
-  };
-  const updateChecklistItem = (id, updates) => {
-    const checklist = card.checklist.map(item => item.id === id ? {
-      ...item,
-      ...updates
-    } : item);
-    onUpdate({
-      ...card,
-      checklist
-    });
-  };
-  const deleteChecklistItem = id => {
-    const checklist = card.checklist.filter(item => item.id !== id);
-    onUpdate({
-      ...card,
-      checklist
-    });
-  };
-  const addComment = text => {
-    if (!text.trim()) return;
-    const comments = [...(card.comments || []), {
-      id: Date.now(),
-      text,
-      timestamp: new Date().toISOString(),
-      author: 'You'
-    }];
-    onUpdate({
-      ...card,
-      comments
-    });
-  };
-  const addCustomField = () => {
-    const customFields = [...(card.customFields || []), {
-      id: Date.now(),
-      name: 'New Field',
-      type: 'text',
-      value: ''
-    }];
-    onUpdate({
-      ...card,
-      customFields
-    });
-  };
-  const updateCustomField = (id, updates) => {
-    const customFields = card.customFields.map(field => field.id === id ? {
-      ...field,
-      ...updates
-    } : field);
-    onUpdate({
-      ...card,
-      customFields
-    });
-  };
-  const deleteCustomField = id => {
-    const customFields = card.customFields.filter(field => field.id !== id);
-    onUpdate({
-      ...card,
-      customFields
-    });
-  };
-  const toggleLabel = labelId => {
-    const labels = card.labels || [];
-    const hasLabel = labels.includes(labelId);
-    onUpdate({
-      ...card,
-      labels: hasLabel ? labels.filter(l => l !== labelId) : [...labels, labelId]
-    });
-  };
-  const addTag = tag => {
-    if (!tag.trim()) return;
-    const tags = [...(card.tags || []), tag.trim()];
-    onUpdate({
-      ...card,
-      tags
-    });
-  };
-  const removeTag = tag => {
-    const tags = card.tags.filter(t => t !== tag);
-    onUpdate({
-      ...card,
-      tags
-    });
-  };
-  const addAssignee = assignee => {
-    if (!assignee.trim()) return;
-    const assignees = [...(card.assignees || []), assignee.trim()];
-    onUpdate({
-      ...card,
-      assignees
-    });
-  };
-  const removeAssignee = assignee => {
-    const assignees = card.assignees.filter(a => a !== assignee);
-    onUpdate({
-      ...card,
-      assignees
-    });
-  };
-  const handleFileUpload = e => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    const newAttachments = files.map(file => ({
-      id: Date.now() + Math.random(),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      uploadedAt: new Date().toISOString(),
-      data: null // In a real app, you'd upload to a server
-    }));
-
-    // Store file data as base64 for demo purposes (works for small files)
-    files.forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onload = event => {
-        newAttachments[index].data = event.target.result;
-        if (index === files.length - 1) {
-          const attachments = [...(card.attachments || []), ...newAttachments];
-          onUpdate({
-            ...card,
-            attachments
-          });
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-  const deleteAttachment = attachmentId => {
-    if (confirm('Delete this attachment?')) {
-      const attachments = card.attachments.filter(a => a.id !== attachmentId);
-      onUpdate({
-        ...card,
-        attachments
-      });
-    }
-  };
-  const downloadAttachment = attachment => {
-    if (!attachment.data) return;
-    const link = document.createElement('a');
-    link.href = attachment.data;
-    link.download = attachment.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-  const openAttachment = (attachment, e) => {
-    // Don't trigger if clicking on action buttons
-    if (e.target.closest('.attachment-actions')) return;
-    if (!attachment.data) return;
-
-    // For images and PDFs, open in new tab
-    if (attachment.type.startsWith('image/') || attachment.type === 'application/pdf') {
-      window.open(attachment.data, '_blank');
-    } else {
-      // For other file types, download
-      downloadAttachment(attachment);
-    }
-  };
-  const formatFileSize = bytes => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-  };
-  const handleCoverUpload = e => {
-    const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = event => {
-      onUpdate({
-        ...card,
-        coverImage: event.target.result
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-  const removeCover = () => {
-    if (confirm('Remove cover image?')) {
-      onUpdate({
-        ...card,
-        coverImage: null
-      });
-    }
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    className: "modal-overlay",
-    onClick: onClose
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-content",
-    onClick: e => e.stopPropagation()
-  }, card.coverImage && /*#__PURE__*/React.createElement("div", {
-    className: "cover-overlay"
-  }, /*#__PURE__*/React.createElement("img", {
-    src: card.coverImage,
-    alt: "Cover",
-    className: "card-cover"
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "cover-actions"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "cover-btn"
-  }, /*#__PURE__*/React.createElement(Image, {
-    size: 14
-  }), " Change", /*#__PURE__*/React.createElement("input", {
-    type: "file",
-    accept: "image/*",
-    onChange: handleCoverUpload,
-    style: {
-      display: 'none'
-    }
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: removeCover,
-    className: "cover-btn"
-  }, /*#__PURE__*/React.createElement(X, {
-    size: 14
-  }), " Remove"))), /*#__PURE__*/React.createElement("div", {
-    className: `modal-header ${card.coverImage ? 'has-cover' : ''}`
-  }, editingField === 'title' ? /*#__PURE__*/React.createElement("input", {
-    value: editValue,
-    onChange: e => setEditValue(e.target.value),
-    onBlur: saveEdit,
-    onKeyPress: e => e.key === 'Enter' && saveEdit(),
-    autoFocus: true,
-    className: "card-title-input",
-    style: {
-      fontSize: '1.5rem',
-      fontWeight: 600
-    }
-  }) : /*#__PURE__*/React.createElement("h2", {
-    onClick: () => startEdit('title', card.title),
-    className: "modal-title",
-    style: {
-      cursor: 'pointer'
-    }
-  }, card.title), /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
-    className: "modal-close"
-  }, /*#__PURE__*/React.createElement(X, {
-    size: 24
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-body"
-  }, card.labels && card.labels.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "card-labels",
-    style: {
-      marginBottom: '1rem'
-    }
-  }, card.labels.map(labelId => {
-    const label = boardLabels.find(l => l.id === labelId);
-    return label ? /*#__PURE__*/React.createElement("span", {
-      key: labelId,
-      className: "label",
-      style: {
-        backgroundColor: label.bg,
-        color: label.color
-      }
-    }, label.name) : null;
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, "Description"), editingField === 'description' ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "format-toolbar"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('bold'),
-    title: "Bold (**text**)",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(Bold, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('italic'),
-    title: "Italic (*text*)",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(Italic, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('underline'),
-    title: "Underline (__text__)",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(Underline, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('bullet'),
-    title: "Bullet List (\u2022 )",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(ListIcon, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginLeft: 'auto',
-      fontSize: '0.75rem',
-      color: '#64748b',
-      display: 'flex',
-      alignItems: 'center'
-    }
-  }, "Click button or select text to format")), /*#__PURE__*/React.createElement("textarea", {
-    ref: textareaRef,
-    value: editValue,
-    onChange: e => setEditValue(e.target.value),
-    rows: 10,
-    className: "format-textarea",
-    style: {
-      width: '100%',
-      padding: '0.75rem',
-      border: '1px solid #e2e8f0',
-      fontSize: '0.95rem'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: '0.5rem',
-      display: 'flex',
-      gap: '0.5rem'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: saveEdit,
-    className: "btn-primary"
-  }, "Save"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setEditingField(null),
-    className: "btn-secondary"
-  }, "Cancel"))) : /*#__PURE__*/React.createElement("div", {
-    onClick: () => startEdit('description', card.description),
-    className: `card-description ${card.description ? 'has-content' : ''}`,
-    style: {
-      minHeight: '120px'
-    }
-  }, renderFormattedDescription(card.description))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, /*#__PURE__*/React.createElement(Calendar, {
-    size: 16
-  }), " Due Date"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: card.dueDate || '',
-    onChange: e => onUpdate({
-      ...card,
-      dueDate: e.target.value
-    }),
-    style: {
-      padding: '0.5rem',
-      borderRadius: '4px',
-      border: '1px solid #e2e8f0',
-      fontSize: '0.95rem'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, /*#__PURE__*/React.createElement(User, {
-    size: 16
-  }), " Assignees"), /*#__PURE__*/React.createElement("div", {
-    className: "assignees-list"
-  }, (card.assignees || []).map(assignee => /*#__PURE__*/React.createElement("span", {
-    key: assignee,
-    className: "assignee"
-  }, assignee, " ", /*#__PURE__*/React.createElement(X, {
-    size: 12,
-    onClick: () => removeAssignee(assignee),
-    style: {
-      cursor: 'pointer'
-    }
-  })))), /*#__PURE__*/React.createElement("div", {
-    className: "add-assignee",
-    style: {
-      marginTop: '0.5rem'
-    }
-  }, /*#__PURE__*/React.createElement("select", {
-    onChange: e => {
-      if (e.target.value) {
-        addAssignee(e.target.value);
-        e.target.value = '';
-      }
-    },
-    className: "assignee-select"
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Select user..."), boardUsers.map(user => /*#__PURE__*/React.createElement("option", {
-    key: user,
-    value: user
-  }, user))), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    placeholder: "Or type name...",
-    onKeyPress: e => {
-      if (e.key === 'Enter') {
-        addAssignee(e.target.value);
-        e.target.value = '';
-      }
-    },
-    className: "assignee-input"
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, /*#__PURE__*/React.createElement(Tag, {
-    size: 16
-  }), " Labels"), /*#__PURE__*/React.createElement("div", {
-    className: "labels-grid"
-  }, boardLabels.map(label => /*#__PURE__*/React.createElement("button", {
-    key: label.id,
-    className: `label-btn ${(card.labels || []).includes(label.id) ? 'active' : ''}`,
-    style: {
-      backgroundColor: label.bg,
-      color: label.color
-    },
-    onClick: () => toggleLabel(label.id)
-  }, label.name)))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, "Free-form Tags"), card.tags && card.tags.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "card-tags",
-    style: {
-      marginBottom: '0.5rem'
-    }
-  }, card.tags.map(tag => /*#__PURE__*/React.createElement("span", {
-    key: tag,
-    className: "tag"
-  }, tag, " ", /*#__PURE__*/React.createElement(X, {
-    size: 12,
-    onClick: () => removeTag(tag),
-    style: {
-      cursor: 'pointer'
-    }
-  })))), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    placeholder: "Add tag and press Enter...",
-    onKeyPress: e => {
-      if (e.key === 'Enter') {
-        addTag(e.target.value);
-        e.target.value = '';
-      }
-    },
-    style: {
-      width: '100%',
-      padding: '0.5rem',
-      borderRadius: '4px',
-      border: '1px solid #e2e8f0'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, /*#__PURE__*/React.createElement(CheckSquare, {
-    size: 16
-  }), " Checklist"), card.checklist && card.checklist.length > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: '0.5rem',
-      fontSize: '0.85rem',
-      color: '#64748b'
-    }
-  }, card.checklist.filter(i => i.done).length, " of ", card.checklist.length, " completed"), /*#__PURE__*/React.createElement("div", {
-    className: "checklist"
-  }, (card.checklist || []).map(item => /*#__PURE__*/React.createElement("div", {
-    key: item.id,
-    className: "checklist-item"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
-    checked: item.done,
-    onChange: e => updateChecklistItem(item.id, {
-      done: e.target.checked
-    })
-  }), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    value: item.text,
-    onChange: e => updateChecklistItem(item.id, {
-      text: e.target.value
-    }),
-    placeholder: "Item text...",
-    className: item.done ? 'completed' : ''
-  }), /*#__PURE__*/React.createElement("button", {
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => deleteChecklistItem(item.id),
-    className: "btn-icon",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(X, {
-    size: 14
-  }))))), /*#__PURE__*/React.createElement("button", {
-    onMouseDown: e => e.preventDefault(),
-    onClick: addChecklistItem,
-    className: "btn-secondary",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(Plus, {
-    size: 14
-  }), " Add Item")), /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, "Custom Fields"), (card.customFields || []).map(field => /*#__PURE__*/React.createElement("div", {
-    key: field.id,
-    className: "custom-field"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    value: field.name,
-    onChange: e => updateCustomField(field.id, {
-      name: e.target.value
-    }),
-    placeholder: "Field name...",
-    className: "field-name"
-  }), /*#__PURE__*/React.createElement("select", {
-    value: field.type,
-    onChange: e => updateCustomField(field.id, {
-      type: e.target.value,
-      value: ''
-    }),
-    className: "field-type"
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "text"
-  }, "Text"), /*#__PURE__*/React.createElement("option", {
-    value: "number"
-  }, "Number"), /*#__PURE__*/React.createElement("option", {
-    value: "date"
-  }, "Date"), /*#__PURE__*/React.createElement("option", {
-    value: "dropdown"
-  }, "Dropdown"), /*#__PURE__*/React.createElement("option", {
-    value: "checkbox"
-  }, "Checkbox")), field.type === 'text' && /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    value: field.value,
-    onChange: e => updateCustomField(field.id, {
-      value: e.target.value
-    }),
-    placeholder: "Value..."
-  }), field.type === 'number' && /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    value: field.value,
-    onChange: e => updateCustomField(field.id, {
-      value: e.target.value
-    })
-  }), field.type === 'date' && /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: field.value,
-    onChange: e => updateCustomField(field.id, {
-      value: e.target.value
-    })
-  }), field.type === 'checkbox' && /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
-    checked: field.value === 'true',
-    onChange: e => updateCustomField(field.id, {
-      value: e.target.checked.toString()
-    })
-  }), field.type === 'dropdown' && /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    value: field.value,
-    onChange: e => updateCustomField(field.id, {
-      value: e.target.value
-    }),
-    placeholder: "Options (comma separated) or value..."
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => deleteCustomField(field.id),
-    className: "btn-icon"
-  }, /*#__PURE__*/React.createElement(X, {
-    size: 14
-  })))), /*#__PURE__*/React.createElement("button", {
-    onClick: addCustomField,
-    className: "btn-secondary"
-  }, /*#__PURE__*/React.createElement(Plus, {
-    size: 14
-  }), " Add Field")), /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, /*#__PURE__*/React.createElement(Paperclip, {
-    size: 16
-  }), " Attachments"), card.attachments && card.attachments.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "attachments-list",
-    style: {
-      marginBottom: '0.75rem'
-    }
-  }, card.attachments.map(attachment => /*#__PURE__*/React.createElement("div", {
-    key: attachment.id,
-    className: "attachment-item",
-    onClick: e => openAttachment(attachment, e),
-    title: "Click to open"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "attachment-icon"
-  }, /*#__PURE__*/React.createElement(Paperclip, {
-    size: 20
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "attachment-info"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "attachment-name"
-  }, attachment.name), /*#__PURE__*/React.createElement("div", {
-    className: "attachment-meta"
-  }, formatFileSize(attachment.size), " \u2022 Added ", new Date(attachment.uploadedAt).toLocaleDateString())), /*#__PURE__*/React.createElement("div", {
-    className: "attachment-actions"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: e => {
-      e.stopPropagation();
-      downloadAttachment(attachment);
-    },
-    className: "btn-icon",
-    title: "Download"
-  }, /*#__PURE__*/React.createElement(Download, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: e => {
-      e.stopPropagation();
-      deleteAttachment(attachment.id);
-    },
-    className: "btn-icon",
-    title: "Delete"
-  }, /*#__PURE__*/React.createElement(X, {
-    size: 16
-  })))))), /*#__PURE__*/React.createElement("label", {
-    className: "file-input-label"
-  }, /*#__PURE__*/React.createElement(Paperclip, {
-    size: 16
-  }), " Add Attachment", /*#__PURE__*/React.createElement("input", {
-    type: "file",
-    multiple: true,
-    onChange: handleFileUpload,
-    className: "file-input-hidden"
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, /*#__PURE__*/React.createElement(MessageSquare, {
-    size: 16
-  }), " Activity & Comments"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: '1rem'
-    }
-  }, editingField === 'newComment' ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "format-toolbar"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('bold'),
-    title: "Bold (**text**)",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(Bold, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('italic'),
-    title: "Italic (*text*)",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(Italic, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('underline'),
-    title: "Underline (__text__)",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(Underline, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('bullet'),
-    title: "Bullet List (\u2022 )",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(ListIcon, {
-    size: 16
-  }))), /*#__PURE__*/React.createElement("textarea", {
-    ref: textareaRef,
-    value: editValue,
-    onChange: e => setEditValue(e.target.value),
-    placeholder: "Write a comment...",
-    rows: 4,
-    className: "format-textarea",
-    style: {
-      width: '100%',
-      padding: '0.75rem',
-      border: '1px solid #e2e8f0',
-      fontSize: '0.95rem'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: '0.5rem',
-      display: 'flex',
-      gap: '0.5rem'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      if (editValue.trim()) {
-        addComment(editValue);
-        setEditValue('');
-        setEditingField(null);
-      }
-    },
-    className: "btn-primary"
-  }, "Save"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setEditValue('');
-      setEditingField(null);
-    },
-    className: "btn-secondary"
-  }, "Cancel"))) : /*#__PURE__*/React.createElement("div", {
-    onClick: () => {
-      setEditingField('newComment');
-      setEditValue('');
-    },
-    style: {
-      padding: '0.75rem',
-      background: '#f8fafc',
-      border: '1px solid #e2e8f0',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      color: '#64748b'
-    }
-  }, "Write a comment...")), /*#__PURE__*/React.createElement("div", {
-    className: "comments"
-  }, (card.comments || []).map((comment, index) => /*#__PURE__*/React.createElement("div", {
-    key: comment.id,
-    className: "comment"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'start',
-      marginBottom: '0.5rem'
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, comment.author), /*#__PURE__*/React.createElement("span", {
-    className: "comment-time"
-  }, " ", new Date(comment.timestamp).toLocaleString())), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: '0.25rem'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setEditingField(`comment-${comment.id}`);
-      setEditValue(comment.text);
-    },
-    className: "btn-icon",
-    title: "Edit"
-  }, /*#__PURE__*/React.createElement(Edit2, {
-    size: 14
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      if (confirm('Delete this comment?')) {
-        const comments = card.comments.filter(c => c.id !== comment.id);
-        onUpdate({
-          ...card,
-          comments
-        });
-      }
-    },
-    className: "btn-icon",
-    title: "Delete"
-  }, /*#__PURE__*/React.createElement(X, {
-    size: 14
-  })))), editingField === `comment-${comment.id}` ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "format-toolbar"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('bold'),
-    title: "Bold (**text**)",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(Bold, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('italic'),
-    title: "Italic (*text*)",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(Italic, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('underline'),
-    title: "Underline (__text__)",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(Underline, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "format-btn",
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => applyFormat('bullet'),
-    title: "Bullet List (\u2022 )",
-    type: "button"
-  }, /*#__PURE__*/React.createElement(ListIcon, {
-    size: 16
-  }))), /*#__PURE__*/React.createElement("textarea", {
-    ref: textareaRef,
-    value: editValue,
-    onChange: e => setEditValue(e.target.value),
-    rows: 4,
-    className: "format-textarea",
-    style: {
-      width: '100%',
-      padding: '0.75rem',
-      border: '1px solid #e2e8f0',
-      fontSize: '0.95rem'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: '0.5rem',
-      display: 'flex',
-      gap: '0.5rem'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      const comments = card.comments.map(c => c.id === comment.id ? {
-        ...c,
-        text: editValue,
-        edited: true
-      } : c);
-      onUpdate({
-        ...card,
-        comments
-      });
-      setEditingField(null);
-    },
-    className: "btn-primary"
-  }, "Save"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setEditingField(null),
-    className: "btn-secondary"
-  }, "Cancel"))) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: '#1e293b'
-    }
-  }, renderFormattedDescription(comment.text), comment.edited && /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: '0.75rem',
-      color: '#94a3b8',
-      fontStyle: 'italic',
-      marginLeft: '0.5rem'
-    }
-  }, "(edited)")))))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, /*#__PURE__*/React.createElement(Palette, {
-    size: 16
-  }), " Card Color"), /*#__PURE__*/React.createElement("div", {
-    className: "color-grid"
-  }, ['#ffffff', '#fee2e2', '#ffedd5', '#fef9c3', '#dcfce7', '#dbeafe', '#f3e8ff', '#fce7f3'].map(color => /*#__PURE__*/React.createElement("button", {
-    key: color,
-    className: `color-btn ${card.color === color ? 'active' : ''}`,
-    style: {
-      backgroundColor: color
-    },
-    onClick: () => onUpdate({
-      ...card,
-      color
-    })
-  })))), !card.coverImage && /*#__PURE__*/React.createElement("div", {
-    className: "modal-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-section-title"
-  }, /*#__PURE__*/React.createElement(Image, {
-    size: 16
-  }), " Cover Image"), /*#__PURE__*/React.createElement("label", {
-    className: "file-input-label"
-  }, /*#__PURE__*/React.createElement(Image, {
-    size: 16
-  }), " Add Cover Image", /*#__PURE__*/React.createElement("input", {
-    type: "file",
-    accept: "image/*",
-    onChange: handleCoverUpload,
-    className: "file-input-hidden"
-  })))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-footer"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      onSaveAsTemplate(card);
-      onClose();
-    },
-    className: "btn-secondary"
-  }, /*#__PURE__*/React.createElement(Copy, {
-    size: 14
-  }), " Save as Template"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      onArchive(card.id);
-      onClose();
-    },
-    className: "btn-secondary"
-  }, /*#__PURE__*/React.createElement(Archive, {
-    size: 14
-  }), " Archive"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      if (confirm('Delete this card?')) {
-        onDelete(card.id);
-        onClose();
-      }
-    },
-    className: "btn-danger"
-  }, /*#__PURE__*/React.createElement(Trash2, {
-    size: 14
-  }), " Delete"))));
-};
-
-// List component
-const List = ({
-  list,
-  cards,
-  onUpdateList,
-  onDeleteList,
-  onAddCard,
-  onUpdateCard,
-  onDeleteCard,
-  onArchiveCard,
-  boardLabels,
-  boardUsers,
-  onSaveAsTemplate,
-  onOpenModal
-}) => {
-  const [isAddingCard, setIsAddingCard] = useState(false);
-  const [newCardTitle, setNewCardTitle] = useState('');
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editTitle, setEditTitle] = useState(list.title);
-  const handleAddCard = () => {
-    if (newCardTitle.trim()) {
-      onAddCard(list.id, newCardTitle);
-      setNewCardTitle('');
-      setIsAddingCard(false);
-    }
-  };
-  const handleSaveTitle = () => {
-    if (editTitle.trim()) {
-      onUpdateList({
-        ...list,
-        title: editTitle
-      });
-    }
-    setIsEditingTitle(false);
-  };
-  const handleDrop = e => {
-    e.preventDefault();
-    const cardId = e.dataTransfer.getData('cardId');
-    if (cardId) {
-      const card = cards.find(c => c.id === cardId);
-      if (card && card.listId !== list.id) {
-        onUpdateCard({
-          ...card,
-          listId: list.id
-        });
-      }
-    }
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    className: "list",
-    onDragOver: e => e.preventDefault(),
-    onDrop: handleDrop
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "list-header"
-  }, isEditingTitle ? /*#__PURE__*/React.createElement("input", {
-    value: editTitle,
-    onChange: e => setEditTitle(e.target.value),
-    onBlur: handleSaveTitle,
-    onKeyPress: e => e.key === 'Enter' && handleSaveTitle(),
-    autoFocus: true,
-    className: "list-title-input"
-  }) : /*#__PURE__*/React.createElement("h3", {
-    onClick: () => setIsEditingTitle(true),
-    className: "list-title"
-  }, list.title, " ", /*#__PURE__*/React.createElement("span", {
-    className: "card-count"
-  }, "(", cards.length, ")")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => onDeleteList(list.id),
-    className: "btn-icon"
-  }, /*#__PURE__*/React.createElement(Trash2, {
-    size: 16
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "cards"
-  }, cards.map(card => /*#__PURE__*/React.createElement(Card, {
-    key: card.id,
-    card: card,
-    onUpdate: onUpdateCard,
-    onDelete: onDeleteCard,
-    onArchive: onArchiveCard,
-    boardLabels: boardLabels,
-    boardUsers: boardUsers,
-    onSaveAsTemplate: onSaveAsTemplate,
-    onOpenModal: onOpenModal
-  }))), isAddingCard ? /*#__PURE__*/React.createElement("div", {
-    className: "add-card-form"
-  }, /*#__PURE__*/React.createElement("input", {
-    value: newCardTitle,
-    onChange: e => setNewCardTitle(e.target.value),
-    onKeyPress: e => e.key === 'Enter' && handleAddCard(),
-    placeholder: "Enter card title...",
-    autoFocus: true
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "form-actions"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: handleAddCard,
-    className: "btn-primary"
-  }, "Add"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setIsAddingCard(false),
-    className: "btn-secondary"
-  }, "Cancel"))) : /*#__PURE__*/React.createElement("button", {
-    onClick: () => setIsAddingCard(true),
-    className: "btn-add-card"
-  }, /*#__PURE__*/React.createElement(Plus, {
-    size: 16
-  }), " Add Card"));
-};
-
-// Calendar View component
-const CalendarView = ({
-  cards,
-  lists,
-  onClose,
-  onUpdateCard,
-  currentBoard
-}) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [appointments, setAppointments] = useState([]);
-  const [showEventForm, setShowEventForm] = useState(false);
-  const [newEvent, setNewEvent] = useState({
-    title: '',
-    date: '',
-    time: '',
-    description: '',
-    type: 'appointment'
-  });
-  useEffect(() => {
+// ─── Storage Hook (window.storage = server-side) ──────────────────────────────
+// Dual storage: localStorage (any browser) + window.storage (Claude.ai)
+// writeSeed=false means don't write fallback — prevents PC from overwriting Grasshopper's board/card data
+function useServerStorage(key, fallback, writeSeed) {
+  writeSeed = writeSeed !== false;
+  const [val, setValState] = React.useState(fallback);
+  const [ready, setReady]  = React.useState(false);
+  const valRef = React.useRef(fallback);
+  React.useEffect(() => {
+    let loaded = false;
     try {
-      const saved = localStorage.getItem(`appointments_${currentBoard?.id}`);
-      if (saved) setAppointments(JSON.parse(saved));
-    } catch(e) { console.error("Calendar load error:", e); }
-  }, [currentBoard]);
-  useEffect(() => {
-    if (currentBoard) {
-      try {
-        localStorage.setItem(`appointments_${currentBoard.id}`, JSON.stringify(appointments));
-      } catch(e) { console.error("Calendar save error:", e); }
-    }
-  }, [appointments, currentBoard]);
-  const daysInMonth = date => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-  const firstDayOfMonth = date => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
-  const getDaysArray = () => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const firstDay = firstDayOfMonth(currentDate);
-    const daysInCurrentMonth = daysInMonth(currentDate);
-    const daysInPrevMonth = daysInMonth(new Date(year, month - 1));
-    let days = [];
-
-    // Previous month days
-    for (let i = firstDay - 1; i >= 0; i--) {
-      days.push({
-        day: daysInPrevMonth - i,
-        month: month - 1,
-        year: month === 0 ? year - 1 : year,
-        isOtherMonth: true
-      });
-    }
-
-    // Current month days
-    for (let i = 1; i <= daysInCurrentMonth; i++) {
-      days.push({
-        day: i,
-        month: month,
-        year: year,
-        isOtherMonth: false
-      });
-    }
-
-    // Next month days
-    const remainingDays = 42 - days.length;
-    for (let i = 1; i <= remainingDays; i++) {
-      days.push({
-        day: i,
-        month: month + 1,
-        year: month === 11 ? year + 1 : year,
-        isOtherMonth: true
-      });
-    }
-    return days;
-  };
-  const isToday = day => {
-    const today = new Date();
-    return day.day === today.getDate() && day.month === today.getMonth() && day.year === today.getFullYear();
-  };
-  const getEventsForDay = day => {
-    const dateStr = `${day.year}-${String(day.month + 1).padStart(2, '0')}-${String(day.day).padStart(2, '0')}`;
-    const cardDues = cards.filter(card => {
-      if (!card.dueDate) return false;
-      const cardDate = card.dueDate.split('T')[0];
-      return cardDate === dateStr;
-    }).map(card => ({
-      type: 'card',
-      title: card.title,
-      card: card
-    }));
-    const appts = appointments.filter(appt => {
-      const apptDate = appt.date.split('T')[0];
-      return apptDate === dateStr;
-    }).map(appt => ({
-      type: 'appointment',
-      title: appt.title,
-      appointment: appt
-    }));
-    return [...cardDues, ...appts];
-  };
-  const addAppointment = () => {
-    if (!newEvent.title || !newEvent.date) return;
-    const appointment = {
-      id: Date.now().toString(),
-      ...newEvent,
-      createdAt: new Date().toISOString()
-    };
-    setAppointments([...appointments, appointment]);
-    setNewEvent({
-      title: '',
-      date: '',
-      time: '',
-      description: '',
-      type: 'appointment'
-    });
-    setShowEventForm(false);
-  };
-  const deleteAppointment = id => {
-    if (confirm('Delete this appointment?')) {
-      setAppointments(appointments.filter(a => a.id !== id));
-    }
-  };
-  const prevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-  };
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-  };
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const days = getDaysArray();
-  return /*#__PURE__*/React.createElement("div", {
-    className: "modal-overlay",
-    onClick: onClose
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-content",
-    onClick: e => e.stopPropagation(),
-    style: {
-      maxWidth: '1200px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-header"
-  }, /*#__PURE__*/React.createElement("h2", {
-    className: "modal-title"
-  }, "Calendar"), /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
-    className: "modal-close"
-  }, /*#__PURE__*/React.createElement(X, {
-    size: 24
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-body"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'grid',
-      gridTemplateColumns: '2fr 1fr',
-      gap: '1.5rem'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "calendar-view"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "calendar-header"
-  }, /*#__PURE__*/React.createElement("h3", {
-    className: "calendar-title"
-  }, monthNames[currentDate.getMonth()], " ", currentDate.getFullYear()), /*#__PURE__*/React.createElement("div", {
-    className: "calendar-nav"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: prevMonth,
-    className: "btn-secondary"
-  }, /*#__PURE__*/React.createElement(ChevronLeft, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setCurrentDate(new Date()),
-    className: "btn-secondary"
-  }, "Today"), /*#__PURE__*/React.createElement("button", {
-    onClick: nextMonth,
-    className: "btn-secondary"
-  }, /*#__PURE__*/React.createElement(ChevronRight, {
-    size: 16
-  })))), /*#__PURE__*/React.createElement("div", {
-    className: "calendar-grid"
-  }, dayNames.map(day => /*#__PURE__*/React.createElement("div", {
-    key: day,
-    className: "calendar-day-header"
-  }, day)), days.map((day, index) => {
-    const events = getEventsForDay(day);
-    const isTodayDay = isToday(day);
-    return /*#__PURE__*/React.createElement("div", {
-      key: index,
-      className: `calendar-day ${day.isOtherMonth ? 'other-month' : ''} ${isTodayDay ? 'today' : ''}`,
-      onClick: () => {
-        setSelectedDate(day);
-        setNewEvent({
-          ...newEvent,
-          date: `${day.year}-${String(day.month + 1).padStart(2, '0')}-${String(day.day).padStart(2, '0')}`
-        });
-        setShowEventForm(true);
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "calendar-day-number"
-    }, day.day), /*#__PURE__*/React.createElement("div", {
-      className: "calendar-events"
-    }, events.map((event, i) => /*#__PURE__*/React.createElement("div", {
-      key: i,
-      className: `calendar-event ${event.type === 'card' ? 'card-due' : 'appointment'}`,
-      onClick: e => {
-        e.stopPropagation();
-        if (event.type === 'card') {
-          // Could open the card modal here
-        }
-      },
-      title: event.title
-    }, event.title))));
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "calendar-sidebar"
-  }, /*#__PURE__*/React.createElement("h4", {
-    style: {
-      marginBottom: '1rem',
-      fontWeight: 600
-    }
-  }, showEventForm ? 'New Appointment' : 'Upcoming Events'), showEventForm ? /*#__PURE__*/React.createElement("div", {
-    className: "event-form"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    placeholder: "Event title",
-    value: newEvent.title,
-    onChange: e => setNewEvent({
-      ...newEvent,
-      title: e.target.value
-    })
-  }), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: newEvent.date,
-    onChange: e => setNewEvent({
-      ...newEvent,
-      date: e.target.value
-    })
-  }), /*#__PURE__*/React.createElement("input", {
-    type: "time",
-    value: newEvent.time,
-    onChange: e => setNewEvent({
-      ...newEvent,
-      time: e.target.value
-    })
-  }), /*#__PURE__*/React.createElement("textarea", {
-    placeholder: "Description (optional)",
-    value: newEvent.description,
-    onChange: e => setNewEvent({
-      ...newEvent,
-      description: e.target.value
-    }),
-    rows: 3
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: '0.5rem'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: addAppointment,
-    className: "btn-primary"
-  }, "Add Appointment"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowEventForm(false),
-    className: "btn-secondary"
-  }, "Cancel"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setNewEvent({
-        title: '',
-        date: '',
-        time: '',
-        description: '',
-        type: 'appointment'
-      });
-      setShowEventForm(true);
-    },
-    className: "btn-primary",
-    style: {
-      width: '100%',
-      marginBottom: '1rem'
-    }
-  }, /*#__PURE__*/React.createElement(Plus, {
-    size: 16
-  }), " New Appointment"), /*#__PURE__*/React.createElement("div", {
-    className: "event-list"
-  }, appointments.sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 10).map(appt => /*#__PURE__*/React.createElement("div", {
-    key: appt.id,
-    className: "event-item"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'start'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "event-item-title"
-  }, appt.title), /*#__PURE__*/React.createElement("div", {
-    className: "event-item-meta"
-  }, new Date(appt.date).toLocaleDateString(), appt.time && ` at ${appt.time}`), appt.description && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: '0.85rem',
-      marginTop: '0.25rem',
-      color: '#64748b'
-    }
-  }, appt.description)), /*#__PURE__*/React.createElement("button", {
-    onClick: () => deleteAppointment(appt.id),
-    className: "btn-icon"
-  }, /*#__PURE__*/React.createElement(X, {
-    size: 14
-  }))))))))))));
-};
-
-// Main App component
-const TrelloApp = () => {
-  const [boards, setBoards] = useState([]);
-  const [currentBoardId, setCurrentBoardId] = useState(null);
-  const [lists, setLists] = useState([]);
-  const [cards, setCards] = useState([]);
-  const [templates, setTemplates] = useState([]);
-  const [isAddingBoard, setIsAddingBoard] = useState(false);
-  const [isAddingList, setIsAddingList] = useState(false);
-  const [newBoardTitle, setNewBoardTitle] = useState('');
-  const [newListTitle, setNewListTitle] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [quickTheme, setQuickTheme] = useState('light');
-  const [selectedCard, setSelectedCard] = useState(null);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const currentBoard = boards.find(b => b.id === currentBoardId);
-  const openCardModal = card => {
-    setSelectedCard(card);
-  };
-  const closeCardModal = () => {
-    setSelectedCard(null);
-  };
-  useEffect(() => {
-    loadData();
-    const savedTheme = null; // theme is session-only in synced mode
-    if (savedTheme) {
-      setQuickTheme(savedTheme);
-    }
-  }, []);
-  const loadData = async () => {
-    const tryLS = key => {
-      try {
-        const r = localStorage.getItem(key);
-        return r ? JSON.parse(r) : null;
-      } catch {
-        return null;
-      }
-    };
-    const tryWS = async key => {
-      try {
-        if (typeof window.storage === 'undefined' || !window.storage) return null;
-        const r = await window.storage.get(key).catch(() => null);
-        return r && r.value ? JSON.parse(r.value) : null;
-      } catch {
-        return null;
-      }
-    };
-    const bLS = tryLS(PC_KEYS.boards),
-      lLS = tryLS(PC_KEYS.lists);
-    const cLS = tryLS(PC_KEYS.cards),
-      tLS = tryLS(PC_KEYS.templates);
-    if (bLS && Array.isArray(bLS)) setBoards(bLS);
-    if (lLS && Array.isArray(lLS)) setLists(lLS);
-    if (cLS && Array.isArray(cLS)) setCards(cLS);
-    if (tLS && Array.isArray(tLS)) setTemplates(tLS);
-    if (bLS && Array.isArray(bLS) && bLS.length > 0 && !currentBoardId) setCurrentBoardId(bLS[0].id);
-    try {
-      const [bWS, lWS, cWS, tWS] = await Promise.all([tryWS(PC_KEYS.boards), tryWS(PC_KEYS.lists), tryWS(PC_KEYS.cards), tryWS(PC_KEYS.templates)]);
-      if (bWS && Array.isArray(bWS)) {
-        setBoards(bWS);
-        try {
-          localStorage.setItem(PC_KEYS.boards, JSON.stringify(bWS));
-        } catch {}
-      }
-      if (lWS && Array.isArray(lWS)) {
-        setLists(lWS);
-        try {
-          localStorage.setItem(PC_KEYS.lists, JSON.stringify(lWS));
-        } catch {}
-      }
-      if (cWS && Array.isArray(cWS)) {
-        setCards(cWS);
-        try {
-          localStorage.setItem(PC_KEYS.cards, JSON.stringify(cWS));
-        } catch {}
-      }
-      if (tWS && Array.isArray(tWS)) {
-        setTemplates(tWS);
-        try {
-          localStorage.setItem(PC_KEYS.templates, JSON.stringify(tWS));
-        } catch {}
-      }
-      if (bWS && Array.isArray(bWS) && bWS.length > 0 && !currentBoardId) setCurrentBoardId(bWS[0].id);
-    } catch (e) {
-      console.error('Grasshopper load error:', e);
-    }
-    setLoading(false);
-  };
-  const dualWrite = (key, data) => {
-    if (loading) return;
-    const str = JSON.stringify(data);
-    try {
-      localStorage.setItem(key, str);
+      const raw = localStorage.getItem(key);
+      if (raw) { const p = JSON.parse(raw); valRef.current=p; setValState(p); loaded=true; }
     } catch {}
-    setTimeout(() => {
+    (async () => {
       try {
-        if (typeof window.storage !== 'undefined' && window.storage) window.storage.set(key, str).catch(() => {});
-      } catch {}
-    }, 0);
-  };
-  useEffect(() => {
-    dualWrite(PC_KEYS.boards, boards);
-  }, [boards, loading]);
-  useEffect(() => {
-    dualWrite(PC_KEYS.lists, lists);
-  }, [lists, loading]);
-  useEffect(() => {
-    dualWrite(PC_KEYS.cards, cards);
-  }, [cards, loading]);
-  useEffect(() => {
-    dualWrite(PC_KEYS.templates, templates);
-  }, [templates, loading]);
-  const addBoard = () => {
-    if (newBoardTitle.trim()) {
-      const newBoard = {
-        id: Date.now().toString(),
-        title: newBoardTitle,
-        background: BOARD_BACKGROUNDS[0].color,
-        theme: 'light',
-        labels: LABEL_COLORS.map((c, i) => ({
-          id: `label-${i}`,
-          ...c
-        })),
-        users: []
-      };
-      setBoards([...boards, newBoard]);
-      setCurrentBoardId(newBoard.id);
-      setNewBoardTitle('');
-      setIsAddingBoard(false);
-    }
-  };
-  const updateBoard = updatedBoard => {
-    setBoards(boards.map(b => b.id === updatedBoard.id ? updatedBoard : b));
-  };
-  const deleteBoard = boardId => {
-    if (confirm('Delete this board and all its lists and cards?')) {
-      setBoards(boards.filter(b => b.id !== boardId));
-      setLists(lists.filter(l => l.boardId !== boardId));
-      setCards(cards.filter(c => {
-        const list = lists.find(l => l.id === c.listId);
-        return !list || list.boardId !== boardId;
-      }));
-      if (currentBoardId === boardId) {
-        setCurrentBoardId(boards[0]?.id || null);
-      }
-    }
-  };
-  const addList = () => {
-    if (newListTitle.trim() && currentBoardId) {
-      const newList = {
-        id: Date.now().toString(),
-        boardId: currentBoardId,
-        title: newListTitle,
-        order: lists.filter(l => l.boardId === currentBoardId).length
-      };
-      setLists([...lists, newList]);
-      setNewListTitle('');
-      setIsAddingList(false);
-    }
-  };
-  const updateList = updatedList => {
-    setLists(lists.map(l => l.id === updatedList.id ? updatedList : l));
-  };
-  const deleteList = listId => {
-    if (confirm('Delete this list and all its cards?')) {
-      setLists(lists.filter(l => l.id !== listId));
-      setCards(cards.filter(c => c.listId !== listId));
-    }
-  };
-  const addCard = (listId, title) => {
-    const newCard = {
-      id: Date.now().toString(),
-      listId,
-      title,
-      description: '',
-      dueDate: '',
-      labels: [],
-      tags: [],
-      assignees: [],
-      checklist: [],
-      comments: [],
-      customFields: [],
-      color: '#ffffff',
-      archived: false
-    };
-    setCards([...cards, newCard]);
-  };
-  const addCardFromTemplate = (listId, template) => {
-    const newCard = {
-      ...template,
-      id: Date.now().toString(),
-      listId,
-      comments: [],
-      archived: false
-    };
-    setCards([...cards, newCard]);
-  };
-  const updateCard = updatedCard => {
-    setCards(cards.map(c => c.id === updatedCard.id ? updatedCard : c));
-  };
-  const deleteCard = cardId => {
-    if (confirm('Delete this card?')) {
-      setCards(cards.filter(c => c.id !== cardId));
-    }
-  };
-  const archiveCard = cardId => {
-    setCards(cards.map(c => c.id === cardId ? {
-      ...c,
-      archived: true
-    } : c));
-  };
-  const saveAsTemplate = card => {
-    const template = {
-      ...card,
-      id: Date.now().toString(),
-      name: `${card.title} Template`
-    };
-    setTemplates([...templates, template]);
-    alert('Card saved as template!');
-  };
-  const deleteTemplate = templateId => {
-    setTemplates(templates.filter(t => t.id !== templateId));
-  };
-  const addUser = userName => {
-    if (!userName.trim() || !currentBoard) return;
-    const users = [...(currentBoard.users || []), userName.trim()];
-    updateBoard({
-      ...currentBoard,
-      users
-    });
-  };
-  const removeUser = userName => {
-    if (!currentBoard) return;
-    const users = currentBoard.users.filter(u => u !== userName);
-    updateBoard({
-      ...currentBoard,
-      users
-    });
-  };
-  const toggleQuickTheme = () => {
-    const newTheme = quickTheme === 'light' ? 'dark' : 'light';
-    setQuickTheme(newTheme);
-    // theme persistence disabled in synced mode (session only)
-  };
-  const backupData = () => {
-    const backup = {
-      boards,
-      lists,
-      cards,
-      templates,
-      timestamp: new Date().toISOString(),
-      appVersion: '1.0'
-    };
-    const dataStr = JSON.stringify(backup, null, 2);
-    const dataBlob = new Blob([dataStr], {
-      type: 'application/json'
-    });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `grasshopper-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    alert('Backup downloaded! Save this file to your Google Drive for safekeeping.');
-  };
-  const restoreData = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = e => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = event => {
-        try {
-          const backup = JSON.parse(event.target.result);
-          if (!backup.boards || !backup.lists || !backup.cards) {
-            alert('Invalid backup file format.');
-            return;
+        if (typeof window.storage !== 'undefined' && window.storage) {
+          const r = await window.storage.get(key);
+          if (r && r.value !== undefined) {
+            const p = JSON.parse(r.value); valRef.current=p; setValState(p); loaded=true;
+            try { localStorage.setItem(key, r.value); } catch {}
           }
-          if (confirm('This will replace all current data with the backup. Continue?')) {
-            setBoards(backup.boards);
-            setLists(backup.lists);
-            setCards(backup.cards);
-            setTemplates(backup.templates || []);
-            if (backup.boards.length > 0) {
-              setCurrentBoardId(backup.boards[0].id);
-            }
-            alert('Data restored successfully!');
-          }
-        } catch (error) {
-          alert('Error reading backup file. Please make sure it\'s a valid Grasshopper backup.');
-          console.error('Restore error:', error);
         }
-      };
-      reader.readAsText(file);
-    };
-    input.click();
-  };
-  if (loading) {
-    return /*#__PURE__*/React.createElement("div", {
-      className: "loading"
-    }, "Loading...");
-  }
-  const currentLists = lists.filter(l => l.boardId === currentBoardId).sort((a, b) => a.order - b.order);
-  const activeCards = cards.filter(c => !c.archived);
-  const archivedCards = cards.filter(c => c.archived);
-  const theme = (currentBoard && THEMES[currentBoard.theme]) ? THEMES[currentBoard.theme] : THEMES[quickTheme];
-  return /*#__PURE__*/React.createElement("div", {
-    className: "app",
-    style: {
-      background: currentBoard?.background || theme.bg,
-      color: theme.text
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "header",
-    style: {
-      backgroundColor: theme.cardBg,
-      borderBottom: `1px solid ${theme.border}`
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "header-left"
-  }, /*#__PURE__*/React.createElement("h1", null, "Grasshopper"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 5,
-      padding: "3px 8px",
-      background: "rgba(92,184,122,0.1)",
-      borderRadius: 5,
-      border: "1px solid rgba(92,184,122,0.2)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 5,
-      height: 5,
-      borderRadius: "50%",
-      background: "#4caf82",
-      boxShadow: "0 0 4px #4caf82"
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: "9px",
-      fontWeight: 700,
-      letterSpacing: "0.12em",
-      color: "#4caf82",
-      fontFamily: "monospace"
-    }
-  }, "SYNCED \xB7 PORTFOLIO COMMAND")), /*#__PURE__*/React.createElement("select", {
-    value: currentBoardId || '',
-    onChange: e => setCurrentBoardId(e.target.value),
-    className: "board-select",
-    style: {
-      backgroundColor: theme.cardBg,
-      color: theme.text,
-      borderColor: theme.border
-    }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Select Board..."), boards.map(board => /*#__PURE__*/React.createElement("option", {
-    key: board.id,
-    value: board.id
-  }, board.title))), isAddingBoard ? /*#__PURE__*/React.createElement("div", {
-    className: "add-board-form"
-  }, /*#__PURE__*/React.createElement("input", {
-    value: newBoardTitle,
-    onChange: e => setNewBoardTitle(e.target.value),
-    onKeyPress: e => e.key === 'Enter' && addBoard(),
-    placeholder: "Board title...",
-    autoFocus: true,
-    style: {
-      backgroundColor: theme.cardBg,
-      color: theme.text,
-      borderColor: theme.border
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: addBoard,
-    className: "btn-primary"
-  }, "Add"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setIsAddingBoard(false),
-    className: "btn-secondary"
-  }, "Cancel")) : /*#__PURE__*/React.createElement("button", {
-    onClick: () => setIsAddingBoard(true),
-    className: "btn-primary"
-  }, /*#__PURE__*/React.createElement(Plus, {
-    size: 16
-  }), " New Board")), /*#__PURE__*/React.createElement("div", {
-    className: "header-right"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: toggleQuickTheme,
-    className: "btn-icon",
-    title: `Switch to ${quickTheme === 'light' ? 'dark' : 'light'} mode`
-  }, quickTheme === 'light' ? /*#__PURE__*/React.createElement(Moon, {
-    size: 20
-  }) : /*#__PURE__*/React.createElement(Sun, {
-    size: 20
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowCalendar(true),
-    className: "btn-secondary"
-  }, /*#__PURE__*/React.createElement(Calendar, {
-    size: 16
-  }), " Calendar"), /*#__PURE__*/React.createElement("button", {
-    onClick: backupData,
-    className: "btn-secondary"
-  }, /*#__PURE__*/React.createElement(Copy, {
-    size: 16
-  }), " Backup Data"), /*#__PURE__*/React.createElement("button", {
-    onClick: restoreData,
-    className: "btn-secondary"
-  }, /*#__PURE__*/React.createElement(Settings, {
-    size: 16
-  }), " Restore Data"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowTemplates(!showTemplates),
-    className: "btn-secondary"
-  }, /*#__PURE__*/React.createElement(Copy, {
-    size: 16
-  }), " Templates (", templates.length, ")"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowSettings(!showSettings),
-    className: "btn-secondary"
-  }, /*#__PURE__*/React.createElement(Settings, {
-    size: 16
-  }), " Settings"))), showSettings && currentBoard && /*#__PURE__*/React.createElement("div", {
-    className: "settings-panel",
-    style: {
-      backgroundColor: theme.cardBg,
-      borderBottom: `1px solid ${theme.border}`
-    }
-  }, /*#__PURE__*/React.createElement("h3", null, "Board Settings"), /*#__PURE__*/React.createElement("div", {
-    className: "settings-section"
-  }, /*#__PURE__*/React.createElement("label", null, "Board Name"), /*#__PURE__*/React.createElement("input", {
-    value: currentBoard.title,
-    onChange: e => updateBoard({
-      ...currentBoard,
-      title: e.target.value
-    }),
-    style: {
-      backgroundColor: theme.cardBg,
-      color: theme.text,
-      borderColor: theme.border
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "settings-section"
-  }, /*#__PURE__*/React.createElement("label", null, "Background"), /*#__PURE__*/React.createElement("div", {
-    className: "backgrounds-grid"
-  }, BOARD_BACKGROUNDS.map(bg => /*#__PURE__*/React.createElement("button", {
-    key: bg.name,
-    className: `bg-btn ${currentBoard.background === bg.color ? 'active' : ''}`,
-    style: {
-      background: bg.color
-    },
-    onClick: () => updateBoard({
-      ...currentBoard,
-      background: bg.color
-    }),
-    title: bg.name
-  })))), /*#__PURE__*/React.createElement("div", {
-    className: "settings-section"
-  }, /*#__PURE__*/React.createElement("label", null, "Theme"), /*#__PURE__*/React.createElement("div", {
-    className: "theme-buttons"
-  }, Object.entries(THEMES).map(([key, t]) => /*#__PURE__*/React.createElement("button", {
-    key: key,
-    className: `theme-btn ${currentBoard.theme === key ? 'active' : ''}`,
-    onClick: () => updateBoard({
-      ...currentBoard,
-      theme: key
-    })
-  }, t.name)))), /*#__PURE__*/React.createElement("div", {
-    className: "settings-section"
-  }, /*#__PURE__*/React.createElement("label", null, "Team Members"), /*#__PURE__*/React.createElement("div", {
-    className: "users-list"
-  }, (currentBoard.users || []).map(user => /*#__PURE__*/React.createElement("span", {
-    key: user,
-    className: "user-badge"
-  }, user, " ", /*#__PURE__*/React.createElement(X, {
-    size: 12,
-    onClick: () => removeUser(user),
-    style: {
-      cursor: 'pointer'
-    }
-  })))), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    placeholder: "Add team member and press Enter...",
-    onKeyPress: e => {
-      if (e.key === 'Enter') {
-        addUser(e.target.value);
-        e.target.value = '';
+      } catch {}
+      if (!loaded && writeSeed) {
+        const s = JSON.stringify(fallback);
+        try { localStorage.setItem(key, s); } catch {}
+        try { if (typeof window.storage !== 'undefined' && window.storage) await window.storage.set(key, s); } catch {}
       }
-    },
-    style: {
-      backgroundColor: theme.cardBg,
-      color: theme.text,
-      borderColor: theme.border
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "settings-section"
-  }, /*#__PURE__*/React.createElement("label", null, "Board Labels"), /*#__PURE__*/React.createElement("div", {
-    className: "labels-list"
-  }, (currentBoard.labels || []).map(label => /*#__PURE__*/React.createElement("span", {
-    key: label.id,
-    className: "label",
-    style: {
-      backgroundColor: label.bg,
-      color: label.color
-    }
-  }, label.name)))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => deleteBoard(currentBoard.id),
-    className: "btn-danger"
-  }, /*#__PURE__*/React.createElement(Trash2, {
-    size: 14
-  }), " Delete Board")), showTemplates && /*#__PURE__*/React.createElement("div", {
-    className: "templates-panel",
-    style: {
-      backgroundColor: theme.cardBg,
-      borderBottom: `1px solid ${theme.border}`
-    }
-  }, /*#__PURE__*/React.createElement("h3", null, "Card Templates"), templates.length === 0 ? /*#__PURE__*/React.createElement("p", null, "No templates yet. Save a card as a template to get started!") : /*#__PURE__*/React.createElement("div", {
-    className: "templates-grid"
-  }, templates.map(template => /*#__PURE__*/React.createElement("div", {
-    key: template.id,
-    className: "template-card",
-    style: {
-      backgroundColor: template.color
-    }
-  }, /*#__PURE__*/React.createElement("h4", null, template.name), /*#__PURE__*/React.createElement("p", null, template.description), /*#__PURE__*/React.createElement("div", {
-    className: "template-actions"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      if (currentLists.length > 0) {
-        addCardFromTemplate(currentLists[0].id, template);
-        setShowTemplates(false);
-      }
-    },
-    className: "btn-primary",
-    disabled: currentLists.length === 0
-  }, "Use Template"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => deleteTemplate(template.id),
-    className: "btn-danger"
-  }, /*#__PURE__*/React.createElement(Trash2, {
-    size: 14
-  }))))))), !currentBoardId ? /*#__PURE__*/React.createElement("div", {
-    className: "empty-state"
-  }, /*#__PURE__*/React.createElement("h2", null, "Welcome to Grasshopper!"), /*#__PURE__*/React.createElement("p", null, "Create your first board to get started.")) : /*#__PURE__*/React.createElement("div", {
-    className: "board"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "lists-container"
-  }, currentLists.map(list => /*#__PURE__*/React.createElement(List, {
-    key: list.id,
-    list: list,
-    cards: activeCards.filter(c => c.listId === list.id),
-    onUpdateList: updateList,
-    onDeleteList: deleteList,
-    onAddCard: addCard,
-    onUpdateCard: updateCard,
-    onDeleteCard: deleteCard,
-    onArchiveCard: archiveCard,
-    boardLabels: currentBoard?.labels || [],
-    boardUsers: currentBoard?.users || [],
-    onSaveAsTemplate: saveAsTemplate,
-    onOpenModal: openCardModal
-  })), isAddingList ? /*#__PURE__*/React.createElement("div", {
-    className: "add-list-form"
-  }, /*#__PURE__*/React.createElement("input", {
-    value: newListTitle,
-    onChange: e => setNewListTitle(e.target.value),
-    onKeyPress: e => e.key === 'Enter' && addList(),
-    placeholder: "List title...",
-    autoFocus: true,
-    style: {
-      backgroundColor: theme.cardBg,
-      color: theme.text,
-      borderColor: theme.border
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "form-actions"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: addList,
-    className: "btn-primary"
-  }, "Add"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setIsAddingList(false),
-    className: "btn-secondary"
-  }, "Cancel"))) : /*#__PURE__*/React.createElement("button", {
-    onClick: () => setIsAddingList(true),
-    className: "btn-add-list"
-  }, /*#__PURE__*/React.createElement(Plus, {
-    size: 18
-  }), " Add List")), archivedCards.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "archived-section",
-    style: {
-      backgroundColor: theme.cardBg,
-      borderTop: `1px solid ${theme.border}`
-    }
-  }, /*#__PURE__*/React.createElement("h3", null, /*#__PURE__*/React.createElement(Archive, {
-    size: 18
-  }), " Archived Cards (", archivedCards.length, ")"), /*#__PURE__*/React.createElement("div", {
-    className: "archived-cards"
-  }, archivedCards.map(card => {
-    const list = lists.find(l => l.id === card.listId);
-    return /*#__PURE__*/React.createElement("div", {
-      key: card.id,
-      className: "archived-card"
-    }, /*#__PURE__*/React.createElement("span", null, card.title, " ", /*#__PURE__*/React.createElement("small", null, "(from ", list?.title, ")")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("button", {
-      onClick: () => updateCard({
-        ...card,
-        archived: false
-      }),
-      className: "btn-secondary"
-    }, "Restore"), /*#__PURE__*/React.createElement("button", {
-      onClick: () => deleteCard(card.id),
-      className: "btn-danger"
-    }, /*#__PURE__*/React.createElement(Trash2, {
-      size: 14
-    }))));
-  })))), selectedCard && /*#__PURE__*/React.createElement(CardModal, {
-    card: selectedCard,
-    onClose: closeCardModal,
-    onUpdate: updateCard,
-    onDelete: deleteCard,
-    onArchive: archiveCard,
-    boardLabels: currentBoard?.labels || [],
-    boardUsers: currentBoard?.users || [],
-    onSaveAsTemplate: saveAsTemplate
-  }), showCalendar && /*#__PURE__*/React.createElement(CalendarView, {
-    cards: activeCards,
-    lists: lists,
-    onClose: () => setShowCalendar(false),
-    onUpdateCard: updateCard,
-    currentBoard: currentBoard
-  }));
-};
-ReactDOM.render(/*#__PURE__*/React.createElement(TrelloApp, null), document.getElementById('root'));
+      setReady(true);
+    })();
+  }, [key]);
+  const setVal = React.useCallback((nv) => {
+    const next = typeof nv === 'function' ? nv(valRef.current) : nv;
+    valRef.current = next; setValState(next);
+    const s = JSON.stringify(next);
+    try { localStorage.setItem(key, s); } catch {}
+    setTimeout(() => {
+      try { if (typeof window.storage !== 'undefined' && window.storage) window.storage.set(key,s).catch(()=>{}); } catch {}
+    }, 0);
+  }, [key]);
+  return [val, setVal, ready];
+}
 
-</script>
+// ─── Shared UI ────────────────────────────────────────────────────────────────
+const C = {
+  bg: "#07070e",
+  surface: "#0f0f1a",
+  card: "#13131f",
+  border: "#1c1c2e",
+  borderLight: "#232338",
+  gold: "#c8a84b",
+  goldDim: "#8a7030",
+  text: "#ede9e4",
+  muted: "#6a6680",
+  dim: "#3a3850",
+};
+
+const inputStyle = {
+  width: "100%", background: C.surface, border: `1px solid ${C.border}`,
+  borderRadius: 6, padding: "9px 12px", color: C.text,
+  fontFamily: "'DM Sans', sans-serif", fontSize: 13, outline: "none",
+};
+
+function Overlay({ onClick }) {
+  return <div onClick={onClick} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.82)", zIndex:900, backdropFilter:"blur(4px)" }} />;
+}
+
+function Modal({ title, onClose, width = 560, children }) {
+  return (
+    <>
+      <Overlay onClick={onClose} />
+      <div style={{ position:"fixed", inset:0, zIndex:910, display:"flex", alignItems:"center", justifyContent:"center", padding:20, pointerEvents:"none" }}>
+        <div style={{ background:C.card, border:`1px solid ${C.borderLight}`, borderRadius:16, width:"100%", maxWidth:width, maxHeight:"88vh", overflowY:"auto", pointerEvents:"auto", boxShadow:"0 32px 80px rgba(0,0,0,0.8)" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"18px 24px", borderBottom:`1px solid ${C.border}`, position:"sticky", top:0, background:C.card, zIndex:1 }}>
+            <span style={{ fontFamily:"'Playfair Display', serif", fontSize:17, fontWeight:700, color:C.text }}>{title}</span>
+            <button onClick={onClose} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:6, color:C.muted, width:30, height:30, cursor:"pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+          </div>
+          <div style={{ padding:24 }}>{children}</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Field({ label, children, row }) {
+  return (
+    <div style={{ marginBottom:14, ...(row ? { display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 } : {}) }}>
+      {!row && <label style={{ display:"block", fontSize:9, fontWeight:700, letterSpacing:"0.14em", textTransform:"uppercase", color:C.muted, marginBottom:5, fontFamily:"'IBM Plex Mono', monospace" }}>{label}</label>}
+      {children}
+    </div>
+  );
+}
+
+function Btn({ variant = "ghost", size = "md", onClick, children, style = {} }) {
+  const base = {
+    display:"inline-flex", alignItems:"center", gap:6, cursor:"pointer", border:"none",
+    borderRadius:7, fontFamily:"'DM Sans', sans-serif", fontWeight:700,
+    fontSize: size === "sm" ? 11 : 12, padding: size === "sm" ? "5px 11px" : "8px 16px",
+    letterSpacing:"0.04em", transition:"all 0.15s", ...style
+  };
+  const variants = {
+    gold: { background:`linear-gradient(135deg,#c8a84b,#9a7a30)`, color:"#080810", boxShadow:"0 2px 12px rgba(200,168,75,0.3)" },
+    ghost: { background:"transparent", color:C.muted, border:`1px solid ${C.border}` },
+    danger: { background:"transparent", color:"#e06c75", border:"1px solid rgba(224,108,117,0.3)" },
+    subtle: { background:C.surface, color:C.text, border:`1px solid ${C.border}` },
+  };
+  return <button onClick={onClick} style={{ ...base, ...variants[variant] }}>{children}</button>;
+}
+
+function Badge({ text, color }) {
+  return <span style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"3px 8px", borderRadius:4, fontSize:9, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", background:`${color}22`, color, border:`1px solid ${color}44`, fontFamily:"'IBM Plex Mono', monospace" }}>{text}</span>;
+}
+
+function ReserveBar({ current, goal }) {
+  const raw = current || 0;
+  const target = goal || 10000;
+  const pctNum = Math.min(Math.max((raw / target) * 100, 0), 100);
+  const isNeg = raw < 0;
+  const isFull = raw >= target;
+  const color = isFull ? "#4caf82" : isNeg ? "#e06c75" : pctNum >= 70 ? "#c8a84b" : "#e5a84b";
+  const width = isFull ? "100%" : `${pctNum}%`;
+  return (
+    <div>
+      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+        <span style={{ fontSize:9, color:C.muted, fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.1em", textTransform:"uppercase" }}>Reserve</span>
+        <span style={{ fontSize:10, fontWeight:700, color, fontFamily:"'IBM Plex Mono', monospace" }}>{$(raw)} <span style={{ color:C.dim, fontWeight:400 }}>/ {$(target)}</span></span>
+      </div>
+      <div style={{ height:4, background:C.border, borderRadius:2, overflow:"hidden" }}>
+        <div style={{ height:"100%", width, background:color, borderRadius:2, transition:"width 1s", boxShadow:`0 0 6px ${color}88` }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Property Card (Monopoly-inspired) ────────────────────────────────────────
+function PropertyCard({ prop, allProps, income, expenses, isSelected, onClick }) {
+  const llcColor = getLLCColor(prop.llc, allProps);
+  const propInc = income.filter(i => i.propertyId === prop.id).reduce((s, i) => s + i.amount, 0);
+  const propExp = expenses.filter(e => e.propertyId === prop.id).reduce((s, e) => s + e.amount, 0);
+  const noi = propInc - propExp;
+  const equity = prop.marketValue - prop.purchasePrice;
+  const statusColor = STATUS_COLOR[prop.status] || C.muted;
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: C.card, borderRadius:12, overflow:"hidden", cursor:"pointer",
+        border: `1px solid ${isSelected ? llcColor : C.border}`,
+        boxShadow: isSelected ? `0 0 0 2px ${llcColor}44, 0 8px 32px rgba(0,0,0,0.5)` : "0 4px 16px rgba(0,0,0,0.3)",
+        transition:"all 0.2s", transform: isSelected ? "translateY(-1px)" : "none",
+      }}
+    >
+      {/* Monopoly-style color strip */}
+      <div style={{ height:8, background:`linear-gradient(90deg, ${llcColor}, ${llcColor}88)`, position:"relative" }}>
+        <div style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:8, fontWeight:900, color:"rgba(255,255,255,0.9)", letterSpacing:"0.15em", textTransform:"uppercase", fontFamily:"'IBM Plex Mono', monospace" }}>
+          {prop.llc?.split(" ")[0]}
+        </div>
+      </div>
+
+      <div style={{ padding:"14px 16px" }}>
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+          <div>
+            <div style={{ fontFamily:"'Playfair Display', serif", fontSize:14, fontWeight:700, color:C.text, lineHeight:1.3 }}>{prop.name}</div>
+            <div style={{ fontSize:9, color:C.muted, marginTop:2, fontFamily:"'IBM Plex Mono', monospace" }}>{prop.type} · {prop.units} unit{prop.units > 1 ? "s" : ""}</div>
+          </div>
+          <Badge text={prop.status} color={statusColor} />
+        </div>
+
+        {/* Stats grid — like Monopoly player stats */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:12 }}>
+          {[
+            { label:"Market Value", value:$(prop.marketValue), color:C.text },
+            { label:"Equity", value:$(equity), color: equity > 0 ? "#4caf82" : "#e06c75" },
+            { label:"NOI", value:$(noi), color: noi > 0 ? "#4caf82" : "#e06c75" },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background:C.surface, borderRadius:6, padding:"8px 10px", border:`1px solid ${C.border}` }}>
+              <div style={{ fontSize:8, color:C.muted, fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:3 }}>{label}</div>
+              <div style={{ fontSize:12, fontWeight:800, color, fontFamily:"'IBM Plex Mono', monospace" }}>{value}</div>
+            </div>
+          ))}
+        </div>
+
+        <ReserveBar current={prop.currentReserve} goal={prop.reserveGoal} />
+
+        {/* LLC tag */}
+        <div style={{ marginTop:10, display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ width:8, height:8, borderRadius:2, background:llcColor, flexShrink:0 }} />
+          <span style={{ fontSize:9, color:C.muted, fontFamily:"'IBM Plex Mono', monospace" }}>{prop.llc}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Property Detail Modal ────────────────────────────────────────────────────
+function PropertyModal({ prop, allProps, income, expenses, onClose, onSave, onDelete }) {
+  const [tab, setTab] = useState("overview");
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ ...prop });
+  const [newInc, setNewInc] = useState({ amount:"", date:today(), note:"", tenant:"" });
+  const [newExp, setNewExp] = useState({ category:"Repairs", amount:"", date:today(), note:"", vendor:"", paymentMethod:"", recurring:false });
+  const [showAddInc, setShowAddInc] = useState(false);
+  const [showAddExp, setShowAddExp] = useState(false);
+
+  const llcColor = getLLCColor(prop.llc, allProps);
+  const propInc = income.filter(i => i.propertyId === prop.id).reduce((s, i) => s + i.amount, 0);
+  const propExp = expenses.filter(e => e.propertyId === prop.id).reduce((s, e) => s + e.amount, 0);
+  const noi = propInc - propExp;
+
+  const tabs = ["overview", "income", "expenses", "notes"];
+
+  return (
+    <Modal title={prop.name} onClose={onClose} width={620}>
+      {/* LLC color indicator */}
+      <div style={{ height:4, background:`linear-gradient(90deg,${llcColor},transparent)`, borderRadius:2, marginBottom:20, marginTop:-4 }} />
+
+      {/* Tab bar */}
+      <div style={{ display:"flex", gap:4, marginBottom:20, borderBottom:`1px solid ${C.border}`, paddingBottom:0 }}>
+        {tabs.map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{
+            background:"none", border:"none", cursor:"pointer", padding:"8px 14px",
+            fontSize:11, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase",
+            fontFamily:"'DM Sans', sans-serif",
+            color: tab === t ? llcColor : C.muted,
+            borderBottom: tab === t ? `2px solid ${llcColor}` : "2px solid transparent",
+            marginBottom:-1, transition:"all 0.15s",
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {/* OVERVIEW TAB */}
+      {tab === "overview" && (
+        <div>
+          {editing ? (
+            <div>
+              {[
+                { label:"Property Name", key:"name", type:"text" },
+                { label:"Address", key:"address", type:"text" },
+                { label:"LLC", key:"llc", type:"text" },
+              ].map(({ label, key, type }) => (
+                <Field key={key} label={label}>
+                  <input value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} style={inputStyle} type={type} />
+                </Field>
+              ))}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                <Field label="Property Type">
+                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={inputStyle}>
+                    {PROP_TYPES.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </Field>
+                <Field label="Status">
+                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={inputStyle}>
+                    {STATUSES.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </Field>
+                <Field label="Units">
+                  <input type="number" value={form.units} onChange={e => setForm({ ...form, units: +e.target.value })} style={inputStyle} />
+                </Field>
+                <Field label="Purchase Price">
+                  <input type="number" value={form.purchasePrice} onChange={e => setForm({ ...form, purchasePrice: +e.target.value })} style={inputStyle} />
+                </Field>
+                <Field label="Market Value">
+                  <input type="number" value={form.marketValue} onChange={e => setForm({ ...form, marketValue: +e.target.value })} style={inputStyle} />
+                </Field>
+                <Field label="Reserve Goal">
+                  <input type="number" value={form.reserveGoal} onChange={e => setForm({ ...form, reserveGoal: +e.target.value })} style={inputStyle} />
+                </Field>
+                <Field label="Current Reserve">
+                  <input type="number" value={form.currentReserve} onChange={e => setForm({ ...form, currentReserve: +e.target.value })} style={inputStyle} />
+                </Field>
+              </div>
+              <div style={{ display:"flex", gap:8, marginTop:16 }}>
+                <Btn variant="gold" onClick={() => { onSave(form); setEditing(false); }}>Save Changes</Btn>
+                <Btn variant="ghost" onClick={() => { setForm({ ...prop }); setEditing(false); }}>Cancel</Btn>
+                <Btn variant="danger" onClick={() => onDelete(prop.id)} style={{ marginLeft:"auto" }}>Delete Property</Btn>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
+                {[
+                  { label:"Market Value", value:$(prop.marketValue) },
+                  { label:"Purchase Price", value:$(prop.purchasePrice) },
+                  { label:"Equity", value:$(prop.marketValue - prop.purchasePrice), color: "#4caf82" },
+                  { label:"Net Operating Income", value:$(noi), color: noi >= 0 ? "#4caf82" : "#e06c75" },
+                  { label:"Total Income", value:$(propInc), color:"#4caf82" },
+                  { label:"Total Expenses", value:$(propExp), color:"#e06c75" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ background:C.surface, borderRadius:8, padding:"12px 14px", border:`1px solid ${C.border}` }}>
+                    <div style={{ fontSize:9, color:C.muted, fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:4 }}>{label}</div>
+                    <div style={{ fontSize:16, fontWeight:800, color: color || C.text, fontFamily:"'IBM Plex Mono', monospace" }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background:C.surface, borderRadius:8, padding:"14px 16px", border:`1px solid ${C.border}`, marginBottom:14 }}>
+                <ReserveBar current={prop.currentReserve} goal={prop.reserveGoal} />
+              </div>
+              <div style={{ fontSize:12, color:C.muted, marginBottom:16 }}>{prop.address}</div>
+              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                <div style={{ width:10, height:10, borderRadius:2, background:llcColor }} />
+                <span style={{ fontSize:11, color:C.text }}>{prop.llc}</span>
+                <span style={{ marginLeft:"auto" }}><Badge text={prop.status} color={STATUS_COLOR[prop.status] || C.muted} /></span>
+              </div>
+              <div style={{ marginTop:16 }}><Btn variant="subtle" onClick={() => setEditing(true)}>✏ Edit Property</Btn></div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* INCOME TAB */}
+      {tab === "income" && (
+        <div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+            <span style={{ fontSize:11, color:C.muted }}>Total: <strong style={{ color:"#4caf82" }}>{$(propInc)}</strong></span>
+            <Btn variant="gold" size="sm" onClick={() => setShowAddInc(!showAddInc)}>+ Add Income</Btn>
+          </div>
+          {showAddInc && (
+            <div style={{ background:C.surface, borderRadius:8, padding:14, border:`1px solid ${C.border}`, marginBottom:14 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+                <Field label="Amount"><input type="number" placeholder="0" value={newInc.amount} onChange={e => setNewInc({ ...newInc, amount: e.target.value })} style={inputStyle} /></Field>
+                <Field label="Date"><input type="date" value={newInc.date} onChange={e => setNewInc({ ...newInc, date: e.target.value })} style={inputStyle} /></Field>
+                <Field label="Tenant"><input value={newInc.tenant} onChange={e => setNewInc({ ...newInc, tenant: e.target.value })} style={inputStyle} /></Field>
+                <Field label="Note"><input value={newInc.note} onChange={e => setNewInc({ ...newInc, note: e.target.value })} style={inputStyle} /></Field>
+              </div>
+              <Btn variant="gold" size="sm" onClick={() => {
+                if (!newInc.amount) return;
+                onSave(null, { type:"income", data:{ ...newInc, id:uid(), propertyId:prop.id, amount:+newInc.amount } });
+                setNewInc({ amount:"", date:today(), note:"", tenant:"" });
+                setShowAddInc(false);
+              }}>Save Income</Btn>
+            </div>
+          )}
+          {income.filter(i => i.propertyId === prop.id).map(item => (
+            <div key={item.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:C.surface, borderRadius:7, border:`1px solid ${C.border}`, marginBottom:6 }}>
+              <div>
+                <div style={{ fontSize:12, color:C.text, fontWeight:600 }}>{item.note || "Rent"}</div>
+                <div style={{ fontSize:10, color:C.muted, fontFamily:"'IBM Plex Mono', monospace" }}>{item.tenant} · {item.date}</div>
+              </div>
+              <div style={{ fontSize:14, fontWeight:800, color:"#4caf82", fontFamily:"'IBM Plex Mono', monospace" }}>{$(item.amount)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* EXPENSES TAB */}
+      {tab === "expenses" && (
+        <div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+            <span style={{ fontSize:11, color:C.muted }}>Total: <strong style={{ color:"#e06c75" }}>{$(propExp)}</strong></span>
+            <Btn variant="gold" size="sm" onClick={() => setShowAddExp(!showAddExp)}>+ Add Expense</Btn>
+          </div>
+          {showAddExp && (
+            <div style={{ background:C.surface, borderRadius:8, padding:14, border:`1px solid ${C.border}`, marginBottom:14 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+                <Field label="Category">
+                  <select value={newExp.category} onChange={e => setNewExp({ ...newExp, category: e.target.value })} style={inputStyle}>
+                    {EXPENSE_CATS.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </Field>
+                <Field label="Amount"><input type="number" placeholder="0" value={newExp.amount} onChange={e => setNewExp({ ...newExp, amount: e.target.value })} style={inputStyle} /></Field>
+                <Field label="Date"><input type="date" value={newExp.date} onChange={e => setNewExp({ ...newExp, date: e.target.value })} style={inputStyle} /></Field>
+                <Field label="Payment Method">
+                  <select value={newExp.paymentMethod} onChange={e => setNewExp({ ...newExp, paymentMethod: e.target.value })} style={inputStyle}>
+                    <option value="">—</option>
+                    {PAY_METHODS.map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </Field>
+                <Field label="Vendor"><input value={newExp.vendor} onChange={e => setNewExp({ ...newExp, vendor: e.target.value })} style={inputStyle} /></Field>
+                <Field label="Note"><input value={newExp.note} onChange={e => setNewExp({ ...newExp, note: e.target.value })} style={inputStyle} /></Field>
+              </div>
+              <Btn variant="gold" size="sm" onClick={() => {
+                if (!newExp.amount) return;
+                onSave(null, { type:"expense", data:{ ...newExp, id:uid(), propertyId:prop.id, amount:+newExp.amount } });
+                setNewExp({ category:"Repairs", amount:"", date:today(), note:"", vendor:"", paymentMethod:"", recurring:false });
+                setShowAddExp(false);
+              }}>Save Expense</Btn>
+            </div>
+          )}
+          {expenses.filter(e => e.propertyId === prop.id).map(item => (
+            <div key={item.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:C.surface, borderRadius:7, border:`1px solid ${C.border}`, marginBottom:6 }}>
+              <div>
+                <div style={{ fontSize:12, color:C.text, fontWeight:600 }}>{item.category}</div>
+                <div style={{ fontSize:10, color:C.muted, fontFamily:"'IBM Plex Mono', monospace" }}>{item.vendor || item.note || "—"} · {item.date}</div>
+              </div>
+              <div style={{ fontSize:14, fontWeight:800, color:"#e06c75", fontFamily:"'IBM Plex Mono', monospace" }}>{$(item.amount)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* NOTES TAB */}
+      {tab === "notes" && (
+        <div>
+          <textarea
+            value={form.notes || ""}
+            onChange={e => setForm({ ...form, notes: e.target.value })}
+            onBlur={() => onSave({ ...prop, notes: form.notes })}
+            placeholder="Property notes, condition, tenant history..."
+            rows={8}
+            style={{ ...inputStyle, resize:"vertical", lineHeight:1.6 }}
+          />
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ─── Add Property Modal ────────────────────────────────────────────────────────
+function AddPropertyModal({ onSave, onClose }) {
+  const [form, setForm] = useState({ name:"", type:"Single Family", units:1, address:"", purchasePrice:"", marketValue:"", llc:"", status:"Occupied", notes:"", reserveGoal:10000, currentReserve:0 });
+  const f = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+
+  return (
+    <Modal title="Add Property" onClose={onClose}>
+      <Field label="Property Name"><input value={form.name} onChange={f("name")} placeholder="e.g. 1842 Harlem Ave" style={inputStyle} /></Field>
+      <Field label="Address"><input value={form.address} onChange={f("address")} placeholder="Full address" style={inputStyle} /></Field>
+      <Field label="LLC"><input value={form.llc} onChange={f("llc")} placeholder="e.g. Brick & Mortar LLC" style={inputStyle} /></Field>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        <Field label="Type"><select value={form.type} onChange={f("type")} style={inputStyle}>{PROP_TYPES.map(t => <option key={t}>{t}</option>)}</select></Field>
+        <Field label="Status"><select value={form.status} onChange={f("status")} style={inputStyle}>{STATUSES.map(s => <option key={s}>{s}</option>)}</select></Field>
+        <Field label="Units"><input type="number" value={form.units} onChange={f("units")} style={inputStyle} /></Field>
+        <Field label="Purchase Price"><input type="number" value={form.purchasePrice} onChange={f("purchasePrice")} placeholder="0" style={inputStyle} /></Field>
+        <Field label="Market Value"><input type="number" value={form.marketValue} onChange={f("marketValue")} placeholder="0" style={inputStyle} /></Field>
+        <Field label="Reserve Goal"><input type="number" value={form.reserveGoal} onChange={f("reserveGoal")} style={inputStyle} /></Field>
+        <Field label="Current Reserve"><input type="number" value={form.currentReserve} onChange={f("currentReserve")} style={inputStyle} /></Field>
+      </div>
+      <div style={{ marginTop:16 }}>
+        <Btn variant="gold" onClick={() => { if (!form.name) return; onSave({ ...form, id:uid(), units:+form.units, purchasePrice:+form.purchasePrice, marketValue:+form.marketValue, reserveGoal:+form.reserveGoal, currentReserve:+form.currentReserve }); onClose(); }}>Add Property</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Task Card ─────────────────────────────────────────────────────────────────
+function TaskCard({ card, allProps, onUpdate, onDelete }) {
+  const [expanded, setExpanded] = useState(false);
+  const prop = allProps.find(p => p.id === card.propertyId);
+  const llcColor = prop ? getLLCColor(prop.llc, allProps) : null;
+  const overdue = card.dueDate && card.dueDate < today();
+
+  return (
+    <div style={{
+      background: C.card, border:`1px solid ${C.border}`, borderRadius:8,
+      marginBottom:6, overflow:"hidden", cursor:"pointer",
+      borderLeft: llcColor ? `3px solid ${llcColor}` : `3px solid ${C.border}`,
+      transition:"all 0.15s",
+    }}>
+      <div onClick={() => setExpanded(!expanded)} style={{ padding:"10px 12px" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+          <span style={{ fontSize:12, color:C.text, fontWeight:600, lineHeight:1.4, flex:1 }}>{card.title}</span>
+          {card.priority && <span style={{ fontSize:8, fontWeight:800, letterSpacing:"0.1em", color:PRIORITY_COLOR[card.priority], fontFamily:"'IBM Plex Mono', monospace", flexShrink:0 }}>{card.priority}</span>}
+        </div>
+        <div style={{ display:"flex", gap:8, marginTop:6, alignItems:"center" }}>
+          {prop && <span style={{ fontSize:9, color: llcColor, fontFamily:"'IBM Plex Mono', monospace", background:`${llcColor}18`, padding:"2px 6px", borderRadius:3 }}>{prop.name}</span>}
+          {card.dueDate && <span style={{ fontSize:9, color: overdue ? "#e06c75" : C.muted, fontFamily:"'IBM Plex Mono', monospace" }}>📅 {card.dueDate}</span>}
+        </div>
+      </div>
+      {expanded && (
+        <div style={{ padding:"0 12px 12px", borderTop:`1px solid ${C.border}`, paddingTop:10 }}>
+          {card.description && <p style={{ fontSize:11, color:C.muted, marginBottom:10, lineHeight:1.5 }}>{card.description}</p>}
+          <div style={{ display:"flex", gap:6 }}>
+            <Btn variant="ghost" size="sm" onClick={() => {
+              const title = prompt("Edit title:", card.title);
+              if (title) onUpdate({ ...card, title });
+            }}>✏ Edit</Btn>
+            <Btn variant="danger" size="sm" onClick={() => onDelete(card.id)}>Delete</Btn>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Kanban List ──────────────────────────────────────────────────────────────
+function KanbanList({ list, cards, allProps, onAddCard, onUpdateCard, onDeleteCard }) {
+  const [adding, setAdding] = useState(false);
+  const [title, setTitle] = useState("");
+
+  return (
+    <div style={{ minWidth:220, maxWidth:220, flexShrink:0, display:"flex", flexDirection:"column" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+        <span style={{ fontSize:11, fontWeight:700, color:C.text, letterSpacing:"0.08em", textTransform:"uppercase", fontFamily:"'DM Sans', sans-serif" }}>{list.title}</span>
+        <span style={{ fontSize:10, color:C.muted, background:C.surface, padding:"2px 7px", borderRadius:10, border:`1px solid ${C.border}` }}>{cards.length}</span>
+      </div>
+      <div style={{ flex:1, overflowY:"auto", maxHeight:"calc(100vh - 220px)", paddingRight:2 }}>
+        {cards.map(card => (
+          <TaskCard key={card.id} card={card} allProps={allProps} onUpdate={onUpdateCard} onDelete={onDeleteCard} />
+        ))}
+      </div>
+      {adding ? (
+        <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:8, padding:10, marginTop:6 }}>
+          <textarea
+            autoFocus value={title} onChange={e => setTitle(e.target.value)}
+            placeholder="Task title..."
+            rows={2}
+            style={{ ...inputStyle, resize:"none", marginBottom:8, fontSize:12 }}
+            onKeyDown={e => {
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (title.trim()) { onAddCard(list.id, title.trim()); setTitle(""); setAdding(false); } }
+              if (e.key === "Escape") { setAdding(false); setTitle(""); }
+            }}
+          />
+          <div style={{ display:"flex", gap:6 }}>
+            <Btn variant="gold" size="sm" onClick={() => { if (title.trim()) { onAddCard(list.id, title.trim()); setTitle(""); setAdding(false); } }}>Add</Btn>
+            <Btn variant="ghost" size="sm" onClick={() => { setAdding(false); setTitle(""); }}>Cancel</Btn>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)} style={{ marginTop:6, width:"100%", padding:"8px", background:"transparent", border:`1px dashed ${C.dim}`, borderRadius:7, color:C.muted, fontSize:11, cursor:"pointer", fontFamily:"'DM Sans', sans-serif", transition:"all 0.15s" }}>
+          + Add task
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+function App() {
+  const [properties, setProperties, propsReady] = useServerStorage("pc:properties", SEED.properties);
+  const [expenses, setExpenses, expReady]       = useServerStorage("pc:expenses",   SEED.expenses);
+  const [income, setIncome, incReady]           = useServerStorage("pc:income",     SEED.income);
+  const [boards, setBoards, boardsReady] = useServerStorage("pc:boards", [], false);
+  const [lists, setLists, listsReady]   = useServerStorage("pc:lists",  [], false);
+  const [cards, setCards, cardsReady]   = useServerStorage("pc:cards",  [], false);
+
+  const [selectedPropId, setSelectedPropId] = useState(null);
+  const [propModal, setPropModal] = useState(null); // prop object
+  const [showAddProp, setShowAddProp] = useState(false);
+  const [activeBoardId, setActiveBoardId] = useState(null);
+
+  const ready = propsReady && expReady && incReady && boardsReady && listsReady && cardsReady;
+
+  useEffect(() => {
+    if (boards.length > 0 && !activeBoardId) {
+      setActiveBoardId(boards[0].id);
+    }
+  }, [boards, activeBoardId]);
+
+  // ── Computed ─────────────────────────────────────────────────────────────────
+  const totalValue   = useMemo(() => properties.reduce((s, p) => s + p.marketValue, 0), [properties]);
+  const totalEquity  = useMemo(() => properties.reduce((s, p) => s + (p.marketValue - p.purchasePrice), 0), [properties]);
+  const totalIncome  = useMemo(() => income.reduce((s, i) => s + i.amount, 0), [income]);
+  const totalExpenses = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
+  const totalNOI     = totalIncome - totalExpenses;
+
+  const activeBoard = boards.find(b => b.id === activeBoardId);
+  // Normalize Grasshopper's board.background -> board.color so PC renders correctly
+  const normalizedBoards = boards.map(b => ({ ...b, color: b.color || b.background || C.gold }));
+  const activeLists = lists.filter(l => l.boardId === activeBoardId).sort((a, b) => a.order - b.order);
+
+  // Filter tasks by selected property
+  const filteredCards = (listId) => {
+    const listCards = cards.filter(c => c.listId === listId && !c.archived);
+    if (!selectedPropId) return listCards;
+    return listCards.filter(c => c.propertyId === selectedPropId || !c.propertyId);
+  };
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+  const saveProp = (updated) => {
+    setProperties(prev => prev.map(p => p.id === updated.id ? updated : p));
+    if (propModal?.id === updated.id) setPropModal(updated);
+  };
+
+  const addProp = (p) => setProperties(prev => [...prev, p]);
+
+  const deleteProp = (id) => {
+    if (!confirm("Delete this property and all its data?")) return;
+    setProperties(prev => prev.filter(p => p.id !== id));
+    setIncome(prev => prev.filter(i => i.propertyId !== id));
+    setExpenses(prev => prev.filter(e => e.propertyId !== id));
+    setPropModal(null);
+  };
+
+  const handlePropModalSave = (propUpdate, txn) => {
+    if (propUpdate) saveProp(propUpdate);
+    if (txn) {
+      if (txn.type === "income") setIncome(prev => [...prev, txn.data]);
+      if (txn.type === "expense") setExpenses(prev => [...prev, txn.data]);
+    }
+  };
+
+  const addCard = (listId, title) => {
+    const newCard = { id:uid(), listId, title, description:"", dueDate:"", priority:"Medium", propertyId:selectedPropId || null, labels:[], checklist:[], archived:false };
+    setCards(prev => [...prev, newCard]);
+  };
+
+  const updateCard = (updated) => setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
+  const deleteCard = (id) => setCards(prev => prev.filter(c => c.id !== id));
+
+  const addBoard = () => {
+    const title = prompt("New board name:");
+    if (!title) return;
+    const b = { id:uid(), title, color:C.gold };
+    setBoards(prev => [...prev, b]);
+    setActiveBoardId(b.id);
+    // Add default lists
+    const newLists = ["To Do","In Progress","Done"].map((t, i) => ({ id:uid(), boardId:b.id, title:t, order:i }));
+    setLists(prev => [...prev, ...newLists]);
+  };
+
+  // ── Loading state ─────────────────────────────────────────────────────────────
+  if (!ready) return (
+    <div style={{ background:C.bg, height:"100vh", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16 }}>
+      <div style={{ width:40, height:40, border:`3px solid ${C.border}`, borderTopColor:C.gold, borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <span style={{ color:C.muted, fontFamily:"'IBM Plex Mono', monospace", fontSize:11, letterSpacing:"0.15em" }}>LOADING PORTFOLIO DATA</span>
+    </div>
+  );
+
+  return (
+    <div style={{ background:C.bg, minHeight:"100vh", fontFamily:"'DM Sans', sans-serif", color:C.text }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a40; border-radius: 2px; }
+        select option { background: #13131f; }
+      `}</style>
+
+      {/* ── Header ── */}
+      <div style={{ background:`${C.surface}ee`, backdropFilter:"blur(10px)", borderBottom:`1px solid ${C.border}`, padding:"12px 24px", display:"flex", alignItems:"center", gap:20, position:"sticky", top:0, zIndex:100 }}>
+        <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
+          <span style={{ fontFamily:"'Playfair Display', serif", fontSize:20, fontWeight:900, color:C.gold, letterSpacing:"-0.02em" }}>Portfolio</span>
+          <span style={{ fontFamily:"'Playfair Display', serif", fontSize:20, fontWeight:900, color:C.text, letterSpacing:"-0.02em" }}>Command</span>
+        </div>
+
+        {/* Global stats pill */}
+        <div style={{ display:"flex", gap:1, background:C.card, border:`1px solid ${C.border}`, borderRadius:8, overflow:"hidden", marginLeft:"auto" }}>
+          {[
+            { label:"Portfolio", value:$(totalValue) },
+            { label:"Equity", value:$(totalEquity), color:"#4caf82" },
+            { label:"NOI", value:$(totalNOI), color: totalNOI >= 0 ? "#4caf82" : "#e06c75" },
+            { label:"Properties", value:properties.length },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ padding:"8px 14px", borderRight:`1px solid ${C.border}` }}>
+              <div style={{ fontSize:8, color:C.muted, letterSpacing:"0.12em", textTransform:"uppercase", fontFamily:"'IBM Plex Mono', monospace", marginBottom:2 }}>{label}</div>
+              <div style={{ fontSize:13, fontWeight:800, color: color || C.text, fontFamily:"'IBM Plex Mono', monospace" }}>{value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Main Layout ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"420px 1fr", height:"calc(100vh - 57px)" }}>
+
+        {/* ── LEFT: Portfolio Panel ── */}
+        <div style={{ borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div style={{ padding:"16px 16px 10px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
+            <div>
+              <div style={{ fontFamily:"'Playfair Display', serif", fontSize:14, fontWeight:700, color:C.text }}>Properties</div>
+              {selectedPropId && <div style={{ fontSize:9, color:C.gold, fontFamily:"'IBM Plex Mono', monospace", marginTop:2 }}>● Tasks filtered to selected property</div>}
+            </div>
+            <div style={{ display:"flex", gap:6 }}>
+              {selectedPropId && <Btn variant="ghost" size="sm" onClick={() => setSelectedPropId(null)}>Clear Filter</Btn>}
+              <Btn variant="gold" size="sm" onClick={() => setShowAddProp(true)}>+ Property</Btn>
+            </div>
+          </div>
+          <div style={{ overflowY:"auto", flex:1, padding:12, display:"flex", flexDirection:"column", gap:10 }}>
+            {properties.map(prop => (
+              <PropertyCard
+                key={prop.id}
+                prop={prop}
+                allProps={properties}
+                income={income}
+                expenses={expenses}
+                isSelected={selectedPropId === prop.id}
+                onClick={() => {
+                  if (selectedPropId === prop.id) {
+                    setPropModal(prop);
+                  } else {
+                    setSelectedPropId(prop.id);
+                  }
+                }}
+              />
+            ))}
+            {properties.length === 0 && (
+              <div style={{ textAlign:"center", padding:"40px 20px", color:C.muted }}>
+                <div style={{ fontSize:32, marginBottom:12 }}>🏠</div>
+                <div style={{ fontSize:13 }}>No properties yet</div>
+                <div style={{ fontSize:11, marginTop:4 }}>Click + Property to get started</div>
+              </div>
+            )}
+            {/* Hint */}
+            <div style={{ textAlign:"center", padding:"8px 0", fontSize:9, color:C.dim, fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.1em" }}>
+              TAP TO FILTER TASKS · TAP AGAIN TO OPEN DETAILS
+            </div>
+          </div>
+        </div>
+
+        {/* ── RIGHT: Task Panel ── */}
+        <div style={{ display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          {/* Board header */}
+          <div style={{ padding:"12px 16px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+            <div style={{ display:"flex", gap:4, overflowX:"auto" }}>
+              {normalizedBoards.map(b => {
+                const bColor = b.color;
+                return (
+                <button key={b.id} onClick={() => setActiveBoardId(b.id)} style={{
+                  padding:"6px 14px", borderRadius:6, border:`1px solid ${activeBoardId === b.id ? bColor : C.border}`,
+                  background: activeBoardId === b.id ? `${bColor}18` : "transparent",
+                  color: activeBoardId === b.id ? bColor : C.muted,
+                  fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans', sans-serif",
+                  letterSpacing:"0.04em", whiteSpace:"nowrap", transition:"all 0.15s",
+                }}>{b.title}</button>
+              )})}
+            </div>
+            <Btn variant="ghost" size="sm" onClick={addBoard} style={{ marginLeft:"auto", flexShrink:0 }}>+ Board</Btn>
+          </div>
+
+          {/* Task columns */}
+          <div style={{ flex:1, overflowX:"auto", padding:16 }}>
+            {activeBoard ? (
+              <div style={{ display:"flex", gap:14, height:"100%" }}>
+                {activeLists.map(list => (
+                  <KanbanList
+                    key={list.id}
+                    list={list}
+                    cards={filteredCards(list.id)}
+                    allProps={properties}
+                    onAddCard={addCard}
+                    onUpdateCard={updateCard}
+                    onDeleteCard={deleteCard}
+                  />
+                ))}
+                {/* Add List */}
+                <div style={{ minWidth:220 }}>
+                  <button
+                    onClick={() => {
+                      const title = prompt("List name:");
+                      if (!title) return;
+                      setLists(prev => [...prev, { id:uid(), boardId:activeBoardId, title, order:activeLists.length }]);
+                    }}
+                    style={{ width:"100%", padding:"10px", background:"transparent", border:`1px dashed ${C.dim}`, borderRadius:8, color:C.muted, fontSize:11, cursor:"pointer", fontFamily:"'DM Sans', sans-serif" }}
+                  >+ Add List</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign:"center", padding:"60px 20px", color:C.muted }}>
+                <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
+                <div style={{ fontSize:13 }}>No board selected</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Modals ── */}
+      {propModal && (
+        <PropertyModal
+          prop={propModal}
+          allProps={properties}
+          income={income}
+          expenses={expenses}
+          onClose={() => setPropModal(null)}
+          onSave={handlePropModalSave}
+          onDelete={deleteProp}
+        />
+      )}
+      {showAddProp && (
+        <AddPropertyModal onSave={addProp} onClose={() => setShowAddProp(false)} />
+      )}
+    </div>
+  );
+}
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
 </body>
 </html>
