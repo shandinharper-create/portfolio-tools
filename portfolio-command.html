@@ -6,8 +6,7 @@
   <title>Portfolio Command</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>
+    <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { overflow: hidden; }
     #root { width: 100vw; height: 100vh; }
@@ -19,72 +18,287 @@
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/babel" data-presets="react">
-    const { useState, useEffect, useMemo, useCallback, useRef } = React;
-
+  <script>
+const {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef
+} = React;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const $ = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n || 0);
-const pct = (n, d) => d ? `${((n / d) * 100).toFixed(1)}%` : "—";
+const $ = n => new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0
+}).format(n || 0);
+const pct = (n, d) => d ? `${(n / d * 100).toFixed(1)}%` : "—";
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 const today = () => new Date().toISOString().slice(0, 10);
-
-const LLC_PALETTE = ["#b5651d","#2196a6","#9c4a8c","#c87941","#c0392b","#8e6bbf","#2e7d4a","#1a5a8a","#b8860b","#5d6d7e"];
+const LLC_PALETTE = ["#b5651d", "#2196a6", "#9c4a8c", "#c87941", "#c0392b", "#8e6bbf", "#2e7d4a", "#1a5a8a", "#b8860b", "#5d6d7e"];
 const getLLCColor = (llcName, allProps) => {
   const allLLCs = [...new Set(allProps.map(p => p.llc).filter(Boolean))];
   const idx = allLLCs.indexOf(llcName);
   return LLC_PALETTE[idx % LLC_PALETTE.length] || "#555";
 };
-
-const EXPENSE_CATS = ["Mortgage","Insurance","Taxes","Repairs","CapEx","Renovation","Utilities","Management","HOA","Vacancy","Legal","Accounting","Other"];
-const PROP_TYPES = ["Single Family","Duplex","Triplex","Quadplex","Multi-Family","Condo","Commercial","Land"];
-const STATUSES = ["Occupied","Vacant","Partially Occupied","Under Renovation"];
-const PAY_METHODS = ["Check","Credit Card","Debit Card","Cash","Zelle","ACH / Bank Transfer","Other"];
-
-const STATUS_COLOR = { "Occupied": "#4caf82", "Vacant": "#e06c75", "Partially Occupied": "#e5a84b", "Under Renovation": "#8e6bbf" };
-const PRIORITY_COLOR = { "High": "#e06c75", "Medium": "#e5a84b", "Low": "#4caf82" };
+const EXPENSE_CATS = ["Mortgage", "Insurance", "Taxes", "Repairs", "CapEx", "Renovation", "Utilities", "Management", "HOA", "Vacancy", "Legal", "Accounting", "Other"];
+const PROP_TYPES = ["Single Family", "Duplex", "Triplex", "Quadplex", "Multi-Family", "Condo", "Commercial", "Land"];
+const STATUSES = ["Occupied", "Vacant", "Partially Occupied", "Under Renovation"];
+const PAY_METHODS = ["Check", "Credit Card", "Debit Card", "Cash", "Zelle", "ACH / Bank Transfer", "Other"];
+const STATUS_COLOR = {
+  "Occupied": "#4caf82",
+  "Vacant": "#e06c75",
+  "Partially Occupied": "#e5a84b",
+  "Under Renovation": "#8e6bbf"
+};
+const PRIORITY_COLOR = {
+  "High": "#e06c75",
+  "Medium": "#e5a84b",
+  "Low": "#4caf82"
+};
 
 // ─── Seed Data ─────────────────────────────────────────────────────────────────
 const SEED = {
-  properties: [
-    { id:"p1", name:"1842 Harlem Ave", type:"Single Family", units:1, address:"1842 Harlem Ave, Baltimore MD 21217", purchasePrice:185000, marketValue:212000, llc:"Brick & Mortar LLC", status:"Occupied", notes:"", reserveGoal:10000, currentReserve:3200 },
-    { id:"p2", name:"307 E Fayette St", type:"Duplex", units:2, address:"307 E Fayette St, Baltimore MD 21202", purchasePrice:220000, marketValue:268000, llc:"East Side Holdings LLC", status:"Occupied", notes:"", reserveGoal:10000, currentReserve:7800 },
-    { id:"p3", name:"914 N Bond St", type:"Single Family", units:1, address:"914 N Bond St, Baltimore MD 21205", purchasePrice:95000, marketValue:130000, llc:"Bond Street Props LLC", status:"Vacant", notes:"Needs roof repair before relisting", reserveGoal:10000, currentReserve:-1200 },
-  ],
-  expenses: [
-    { id:"e1", propertyId:"p1", category:"Mortgage", amount:1050, date:"2026-02-01", note:"Monthly P&I", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer" },
-    { id:"e2", propertyId:"p1", category:"Insurance", amount:95, date:"2026-02-01", note:"Monthly escrow", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer" },
-    { id:"e3", propertyId:"p1", category:"Repairs", amount:320, date:"2026-01-15", note:"HVAC belt + filter", recurring:false, vendor:"City HVAC", paymentMethod:"Check" },
-    { id:"e4", propertyId:"p2", category:"Mortgage", amount:1280, date:"2026-02-01", note:"Monthly P&I", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer" },
-    { id:"e5", propertyId:"p2", category:"Insurance", amount:145, date:"2026-02-01", note:"Monthly escrow", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer" },
-    { id:"e6", propertyId:"p2", category:"Repairs", amount:850, date:"2026-01-28", note:"Unit 2 plumbing leak", recurring:false, vendor:"Joe's Plumbing", paymentMethod:"Check" },
-    { id:"e7", propertyId:"p3", category:"Mortgage", amount:610, date:"2026-02-01", note:"Monthly P&I", recurring:true, vendor:"", paymentMethod:"ACH / Bank Transfer" },
-    { id:"e8", propertyId:"p3", category:"Taxes", amount:210, date:"2026-01-20", note:"Q1 property tax", recurring:false, vendor:"Baltimore City", paymentMethod:"Check" },
-  ],
-  income: [
-    { id:"i1", propertyId:"p1", amount:1450, date:"2026-02-01", note:"Monthly rent", tenant:"Williams Family" },
-    { id:"i2", propertyId:"p2", amount:950, date:"2026-02-01", note:"Unit 1 rent", tenant:"Marcus T." },
-    { id:"i3", propertyId:"p2", amount:875, date:"2026-02-03", note:"Unit 2 rent", tenant:"Sandra R." },
-  ],
-  boards: [
-    { id:"b1", title:"Property Management", color:"#c8a84b" },
-    { id:"b2", title:"Acquisitions", color:"#4caf82" },
-  ],
-  lists: [
-    { id:"l1", boardId:"b1", title:"To Do", order:0 },
-    { id:"l2", boardId:"b1", title:"In Progress", order:1 },
-    { id:"l3", boardId:"b1", title:"Done", order:2 },
-    { id:"l4", boardId:"b2", title:"Researching", order:0 },
-    { id:"l5", boardId:"b2", title:"Due Diligence", order:1 },
-    { id:"l6", boardId:"b2", title:"Closed", order:2 },
-  ],
-  cards: [
-    { id:"c1", listId:"l1", title:"Schedule roof inspection — 914 N Bond", description:"Get 3 quotes before relist", dueDate:"2026-03-15", priority:"High", propertyId:"p3", labels:[], checklist:[], archived:false },
-    { id:"c2", listId:"l1", title:"Renew insurance — Harlem Ave", description:"Policy expires April 1", dueDate:"2026-03-25", priority:"Medium", propertyId:"p1", labels:[], checklist:[], archived:false },
-    { id:"c3", listId:"l2", title:"Fix plumbing — 307 E Fayette Unit 2", description:"Joe's Plumbing confirmed for Monday", dueDate:"2026-03-05", priority:"High", propertyId:"p2", labels:[], checklist:[], archived:false },
-    { id:"c4", listId:"l3", title:"Collect Feb rent — All properties", description:"All three collected", dueDate:"2026-02-05", priority:"Low", propertyId:null, labels:[], checklist:[], archived:false },
-    { id:"c5", listId:"l4", title:"Research N Patterson Park Ave", description:"Off-market duplex lead from Marcus", dueDate:"", priority:"Medium", propertyId:null, labels:[], checklist:[], archived:false },
-  ],
+  properties: [{
+    id: "p1",
+    name: "1842 Harlem Ave",
+    type: "Single Family",
+    units: 1,
+    address: "1842 Harlem Ave, Baltimore MD 21217",
+    purchasePrice: 185000,
+    marketValue: 212000,
+    llc: "Brick & Mortar LLC",
+    status: "Occupied",
+    notes: "",
+    reserveGoal: 10000,
+    currentReserve: 3200
+  }, {
+    id: "p2",
+    name: "307 E Fayette St",
+    type: "Duplex",
+    units: 2,
+    address: "307 E Fayette St, Baltimore MD 21202",
+    purchasePrice: 220000,
+    marketValue: 268000,
+    llc: "East Side Holdings LLC",
+    status: "Occupied",
+    notes: "",
+    reserveGoal: 10000,
+    currentReserve: 7800
+  }, {
+    id: "p3",
+    name: "914 N Bond St",
+    type: "Single Family",
+    units: 1,
+    address: "914 N Bond St, Baltimore MD 21205",
+    purchasePrice: 95000,
+    marketValue: 130000,
+    llc: "Bond Street Props LLC",
+    status: "Vacant",
+    notes: "Needs roof repair before relisting",
+    reserveGoal: 10000,
+    currentReserve: -1200
+  }],
+  expenses: [{
+    id: "e1",
+    propertyId: "p1",
+    category: "Mortgage",
+    amount: 1050,
+    date: "2026-02-01",
+    note: "Monthly P&I",
+    recurring: true,
+    vendor: "",
+    paymentMethod: "ACH / Bank Transfer"
+  }, {
+    id: "e2",
+    propertyId: "p1",
+    category: "Insurance",
+    amount: 95,
+    date: "2026-02-01",
+    note: "Monthly escrow",
+    recurring: true,
+    vendor: "",
+    paymentMethod: "ACH / Bank Transfer"
+  }, {
+    id: "e3",
+    propertyId: "p1",
+    category: "Repairs",
+    amount: 320,
+    date: "2026-01-15",
+    note: "HVAC belt + filter",
+    recurring: false,
+    vendor: "City HVAC",
+    paymentMethod: "Check"
+  }, {
+    id: "e4",
+    propertyId: "p2",
+    category: "Mortgage",
+    amount: 1280,
+    date: "2026-02-01",
+    note: "Monthly P&I",
+    recurring: true,
+    vendor: "",
+    paymentMethod: "ACH / Bank Transfer"
+  }, {
+    id: "e5",
+    propertyId: "p2",
+    category: "Insurance",
+    amount: 145,
+    date: "2026-02-01",
+    note: "Monthly escrow",
+    recurring: true,
+    vendor: "",
+    paymentMethod: "ACH / Bank Transfer"
+  }, {
+    id: "e6",
+    propertyId: "p2",
+    category: "Repairs",
+    amount: 850,
+    date: "2026-01-28",
+    note: "Unit 2 plumbing leak",
+    recurring: false,
+    vendor: "Joe's Plumbing",
+    paymentMethod: "Check"
+  }, {
+    id: "e7",
+    propertyId: "p3",
+    category: "Mortgage",
+    amount: 610,
+    date: "2026-02-01",
+    note: "Monthly P&I",
+    recurring: true,
+    vendor: "",
+    paymentMethod: "ACH / Bank Transfer"
+  }, {
+    id: "e8",
+    propertyId: "p3",
+    category: "Taxes",
+    amount: 210,
+    date: "2026-01-20",
+    note: "Q1 property tax",
+    recurring: false,
+    vendor: "Baltimore City",
+    paymentMethod: "Check"
+  }],
+  income: [{
+    id: "i1",
+    propertyId: "p1",
+    amount: 1450,
+    date: "2026-02-01",
+    note: "Monthly rent",
+    tenant: "Williams Family"
+  }, {
+    id: "i2",
+    propertyId: "p2",
+    amount: 950,
+    date: "2026-02-01",
+    note: "Unit 1 rent",
+    tenant: "Marcus T."
+  }, {
+    id: "i3",
+    propertyId: "p2",
+    amount: 875,
+    date: "2026-02-03",
+    note: "Unit 2 rent",
+    tenant: "Sandra R."
+  }],
+  boards: [{
+    id: "b1",
+    title: "Property Management",
+    color: "#c8a84b"
+  }, {
+    id: "b2",
+    title: "Acquisitions",
+    color: "#4caf82"
+  }],
+  lists: [{
+    id: "l1",
+    boardId: "b1",
+    title: "To Do",
+    order: 0
+  }, {
+    id: "l2",
+    boardId: "b1",
+    title: "In Progress",
+    order: 1
+  }, {
+    id: "l3",
+    boardId: "b1",
+    title: "Done",
+    order: 2
+  }, {
+    id: "l4",
+    boardId: "b2",
+    title: "Researching",
+    order: 0
+  }, {
+    id: "l5",
+    boardId: "b2",
+    title: "Due Diligence",
+    order: 1
+  }, {
+    id: "l6",
+    boardId: "b2",
+    title: "Closed",
+    order: 2
+  }],
+  cards: [{
+    id: "c1",
+    listId: "l1",
+    title: "Schedule roof inspection — 914 N Bond",
+    description: "Get 3 quotes before relist",
+    dueDate: "2026-03-15",
+    priority: "High",
+    propertyId: "p3",
+    labels: [],
+    checklist: [],
+    archived: false
+  }, {
+    id: "c2",
+    listId: "l1",
+    title: "Renew insurance — Harlem Ave",
+    description: "Policy expires April 1",
+    dueDate: "2026-03-25",
+    priority: "Medium",
+    propertyId: "p1",
+    labels: [],
+    checklist: [],
+    archived: false
+  }, {
+    id: "c3",
+    listId: "l2",
+    title: "Fix plumbing — 307 E Fayette Unit 2",
+    description: "Joe's Plumbing confirmed for Monday",
+    dueDate: "2026-03-05",
+    priority: "High",
+    propertyId: "p2",
+    labels: [],
+    checklist: [],
+    archived: false
+  }, {
+    id: "c4",
+    listId: "l3",
+    title: "Collect Feb rent — All properties",
+    description: "All three collected",
+    dueDate: "2026-02-05",
+    priority: "Low",
+    propertyId: null,
+    labels: [],
+    checklist: [],
+    archived: false
+  }, {
+    id: "c5",
+    listId: "l4",
+    title: "Research N Patterson Park Ave",
+    description: "Off-market duplex lead from Marcus",
+    dueDate: "",
+    priority: "Medium",
+    propertyId: null,
+    labels: [],
+    checklist: [],
+    archived: false
+  }]
 };
 
 // ─── Storage Hook (window.storage = server-side) ──────────────────────────────
@@ -93,39 +307,58 @@ const SEED = {
 function useServerStorage(key, fallback, writeSeed) {
   writeSeed = writeSeed !== false;
   const [val, setValState] = React.useState(fallback);
-  const [ready, setReady]  = React.useState(false);
+  const [ready, setReady] = React.useState(false);
   const valRef = React.useRef(fallback);
   React.useEffect(() => {
     let loaded = false;
     try {
       const raw = localStorage.getItem(key);
-      if (raw) { const p = JSON.parse(raw); valRef.current=p; setValState(p); loaded=true; }
+      if (raw) {
+        const p = JSON.parse(raw);
+        valRef.current = p;
+        setValState(p);
+        loaded = true;
+      }
     } catch {}
     (async () => {
       try {
         if (typeof window.storage !== 'undefined' && window.storage) {
           const r = await window.storage.get(key);
           if (r && r.value !== undefined) {
-            const p = JSON.parse(r.value); valRef.current=p; setValState(p); loaded=true;
-            try { localStorage.setItem(key, r.value); } catch {}
+            const p = JSON.parse(r.value);
+            valRef.current = p;
+            setValState(p);
+            loaded = true;
+            try {
+              localStorage.setItem(key, r.value);
+            } catch {}
           }
         }
       } catch {}
       if (!loaded && writeSeed) {
         const s = JSON.stringify(fallback);
-        try { localStorage.setItem(key, s); } catch {}
-        try { if (typeof window.storage !== 'undefined' && window.storage) await window.storage.set(key, s); } catch {}
+        try {
+          localStorage.setItem(key, s);
+        } catch {}
+        try {
+          if (typeof window.storage !== 'undefined' && window.storage) await window.storage.set(key, s);
+        } catch {}
       }
       setReady(true);
     })();
   }, [key]);
-  const setVal = React.useCallback((nv) => {
+  const setVal = React.useCallback(nv => {
     const next = typeof nv === 'function' ? nv(valRef.current) : nv;
-    valRef.current = next; setValState(next);
+    valRef.current = next;
+    setValState(next);
     const s = JSON.stringify(next);
-    try { localStorage.setItem(key, s); } catch {}
+    try {
+      localStorage.setItem(key, s);
+    } catch {}
     setTimeout(() => {
-      try { if (typeof window.storage !== 'undefined' && window.storage) window.storage.set(key,s).catch(()=>{}); } catch {}
+      try {
+        if (typeof window.storage !== 'undefined' && window.storage) window.storage.set(key, s).catch(() => {});
+      } catch {}
     }, 0);
   }, [key]);
   return [val, setVal, ready];
@@ -142,485 +375,1402 @@ const C = {
   goldDim: "#8a7030",
   text: "#ede9e4",
   muted: "#6a6680",
-  dim: "#3a3850",
+  dim: "#3a3850"
 };
-
 const inputStyle = {
-  width: "100%", background: C.surface, border: `1px solid ${C.border}`,
-  borderRadius: 6, padding: "9px 12px", color: C.text,
-  fontFamily: "'DM Sans', sans-serif", fontSize: 13, outline: "none",
+  width: "100%",
+  background: C.surface,
+  border: `1px solid ${C.border}`,
+  borderRadius: 6,
+  padding: "9px 12px",
+  color: C.text,
+  fontFamily: "'DM Sans', sans-serif",
+  fontSize: 13,
+  outline: "none"
 };
-
-function Overlay({ onClick }) {
-  return <div onClick={onClick} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.82)", zIndex:900, backdropFilter:"blur(4px)" }} />;
+function Overlay({
+  onClick
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClick,
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.82)",
+      zIndex: 900,
+      backdropFilter: "blur(4px)"
+    }
+  });
 }
-
-function Modal({ title, onClose, width = 560, children }) {
-  return (
-    <>
-      <Overlay onClick={onClose} />
-      <div style={{ position:"fixed", inset:0, zIndex:910, display:"flex", alignItems:"center", justifyContent:"center", padding:20, pointerEvents:"none" }}>
-        <div style={{ background:C.card, border:`1px solid ${C.borderLight}`, borderRadius:16, width:"100%", maxWidth:width, maxHeight:"88vh", overflowY:"auto", pointerEvents:"auto", boxShadow:"0 32px 80px rgba(0,0,0,0.8)" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"18px 24px", borderBottom:`1px solid ${C.border}`, position:"sticky", top:0, background:C.card, zIndex:1 }}>
-            <span style={{ fontFamily:"'Playfair Display', serif", fontSize:17, fontWeight:700, color:C.text }}>{title}</span>
-            <button onClick={onClose} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:6, color:C.muted, width:30, height:30, cursor:"pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
-          </div>
-          <div style={{ padding:24 }}>{children}</div>
-        </div>
-      </div>
-    </>
-  );
+function Modal({
+  title,
+  onClose,
+  width = 560,
+  children
+}) {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Overlay, {
+    onClick: onClose
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 910,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20,
+      pointerEvents: "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.borderLight}`,
+      borderRadius: 16,
+      width: "100%",
+      maxWidth: width,
+      maxHeight: "88vh",
+      overflowY: "auto",
+      pointerEvents: "auto",
+      boxShadow: "0 32px 80px rgba(0,0,0,0.8)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "18px 24px",
+      borderBottom: `1px solid ${C.border}`,
+      position: "sticky",
+      top: 0,
+      background: C.card,
+      zIndex: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Playfair Display', serif",
+      fontSize: 17,
+      fontWeight: 700,
+      color: C.text
+    }
+  }, title), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      background: "none",
+      border: `1px solid ${C.border}`,
+      borderRadius: 6,
+      color: C.muted,
+      width: 30,
+      height: 30,
+      cursor: "pointer",
+      fontSize: 16,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24
+    }
+  }, children))));
 }
-
-function Field({ label, children, row }) {
-  return (
-    <div style={{ marginBottom:14, ...(row ? { display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 } : {}) }}>
-      {!row && <label style={{ display:"block", fontSize:9, fontWeight:700, letterSpacing:"0.14em", textTransform:"uppercase", color:C.muted, marginBottom:5, fontFamily:"'IBM Plex Mono', monospace" }}>{label}</label>}
-      {children}
-    </div>
-  );
+function Field({
+  label,
+  children,
+  row
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14,
+      ...(row ? {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 12
+      } : {})
+    }
+  }, !row && /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: "0.14em",
+      textTransform: "uppercase",
+      color: C.muted,
+      marginBottom: 5,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, label), children);
 }
-
-function Btn({ variant = "ghost", size = "md", onClick, children, style = {} }) {
+function Btn({
+  variant = "ghost",
+  size = "md",
+  onClick,
+  children,
+  style = {}
+}) {
   const base = {
-    display:"inline-flex", alignItems:"center", gap:6, cursor:"pointer", border:"none",
-    borderRadius:7, fontFamily:"'DM Sans', sans-serif", fontWeight:700,
-    fontSize: size === "sm" ? 11 : 12, padding: size === "sm" ? "5px 11px" : "8px 16px",
-    letterSpacing:"0.04em", transition:"all 0.15s", ...style
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    cursor: "pointer",
+    border: "none",
+    borderRadius: 7,
+    fontFamily: "'DM Sans', sans-serif",
+    fontWeight: 700,
+    fontSize: size === "sm" ? 11 : 12,
+    padding: size === "sm" ? "5px 11px" : "8px 16px",
+    letterSpacing: "0.04em",
+    transition: "all 0.15s",
+    ...style
   };
   const variants = {
-    gold: { background:`linear-gradient(135deg,#c8a84b,#9a7a30)`, color:"#080810", boxShadow:"0 2px 12px rgba(200,168,75,0.3)" },
-    ghost: { background:"transparent", color:C.muted, border:`1px solid ${C.border}` },
-    danger: { background:"transparent", color:"#e06c75", border:"1px solid rgba(224,108,117,0.3)" },
-    subtle: { background:C.surface, color:C.text, border:`1px solid ${C.border}` },
+    gold: {
+      background: `linear-gradient(135deg,#c8a84b,#9a7a30)`,
+      color: "#080810",
+      boxShadow: "0 2px 12px rgba(200,168,75,0.3)"
+    },
+    ghost: {
+      background: "transparent",
+      color: C.muted,
+      border: `1px solid ${C.border}`
+    },
+    danger: {
+      background: "transparent",
+      color: "#e06c75",
+      border: "1px solid rgba(224,108,117,0.3)"
+    },
+    subtle: {
+      background: C.surface,
+      color: C.text,
+      border: `1px solid ${C.border}`
+    }
   };
-  return <button onClick={onClick} style={{ ...base, ...variants[variant] }}>{children}</button>;
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: onClick,
+    style: {
+      ...base,
+      ...variants[variant]
+    }
+  }, children);
 }
-
-function Badge({ text, color }) {
-  return <span style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"3px 8px", borderRadius:4, fontSize:9, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", background:`${color}22`, color, border:`1px solid ${color}44`, fontFamily:"'IBM Plex Mono', monospace" }}>{text}</span>;
+function Badge({
+  text,
+  color
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      padding: "3px 8px",
+      borderRadius: 4,
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      background: `${color}22`,
+      color,
+      border: `1px solid ${color}44`,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, text);
 }
-
-function ReserveBar({ current, goal }) {
+function ReserveBar({
+  current,
+  goal
+}) {
   const raw = current || 0;
   const target = goal || 10000;
-  const pctNum = Math.min(Math.max((raw / target) * 100, 0), 100);
+  const pctNum = Math.min(Math.max(raw / target * 100, 0), 100);
   const isNeg = raw < 0;
   const isFull = raw >= target;
   const color = isFull ? "#4caf82" : isNeg ? "#e06c75" : pctNum >= 70 ? "#c8a84b" : "#e5a84b";
   const width = isFull ? "100%" : `${pctNum}%`;
-  return (
-    <div>
-      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-        <span style={{ fontSize:9, color:C.muted, fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.1em", textTransform:"uppercase" }}>Reserve</span>
-        <span style={{ fontSize:10, fontWeight:700, color, fontFamily:"'IBM Plex Mono', monospace" }}>{$(raw)} <span style={{ color:C.dim, fontWeight:400 }}>/ {$(target)}</span></span>
-      </div>
-      <div style={{ height:4, background:C.border, borderRadius:2, overflow:"hidden" }}>
-        <div style={{ height:"100%", width, background:color, borderRadius:2, transition:"width 1s", boxShadow:`0 0 6px ${color}88` }} />
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: C.muted,
+      fontFamily: "'IBM Plex Mono', monospace",
+      letterSpacing: "0.1em",
+      textTransform: "uppercase"
+    }
+  }, "Reserve"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      color,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, $(raw), " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.dim,
+      fontWeight: 400
+    }
+  }, "/ ", $(target)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 4,
+      background: C.border,
+      borderRadius: 2,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "100%",
+      width,
+      background: color,
+      borderRadius: 2,
+      transition: "width 1s",
+      boxShadow: `0 0 6px ${color}88`
+    }
+  })));
 }
 
 // ─── Property Card (Monopoly-inspired) ────────────────────────────────────────
-function PropertyCard({ prop, allProps, income, expenses, isSelected, onClick }) {
+function PropertyCard({
+  prop,
+  allProps,
+  income,
+  expenses,
+  isSelected,
+  onClick
+}) {
   const llcColor = getLLCColor(prop.llc, allProps);
   const propInc = income.filter(i => i.propertyId === prop.id).reduce((s, i) => s + i.amount, 0);
   const propExp = expenses.filter(e => e.propertyId === prop.id).reduce((s, e) => s + e.amount, 0);
   const noi = propInc - propExp;
   const equity = prop.marketValue - prop.purchasePrice;
   const statusColor = STATUS_COLOR[prop.status] || C.muted;
-
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        background: C.card, borderRadius:12, overflow:"hidden", cursor:"pointer",
-        border: `1px solid ${isSelected ? llcColor : C.border}`,
-        boxShadow: isSelected ? `0 0 0 2px ${llcColor}44, 0 8px 32px rgba(0,0,0,0.5)` : "0 4px 16px rgba(0,0,0,0.3)",
-        transition:"all 0.2s", transform: isSelected ? "translateY(-1px)" : "none",
-      }}
-    >
-      {/* Monopoly-style color strip */}
-      <div style={{ height:8, background:`linear-gradient(90deg, ${llcColor}, ${llcColor}88)`, position:"relative" }}>
-        <div style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:8, fontWeight:900, color:"rgba(255,255,255,0.9)", letterSpacing:"0.15em", textTransform:"uppercase", fontFamily:"'IBM Plex Mono', monospace" }}>
-          {prop.llc?.split(" ")[0]}
-        </div>
-      </div>
-
-      <div style={{ padding:"14px 16px" }}>
-        {/* Header */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
-          <div>
-            <div style={{ fontFamily:"'Playfair Display', serif", fontSize:14, fontWeight:700, color:C.text, lineHeight:1.3 }}>{prop.name}</div>
-            <div style={{ fontSize:9, color:C.muted, marginTop:2, fontFamily:"'IBM Plex Mono', monospace" }}>{prop.type} · {prop.units} unit{prop.units > 1 ? "s" : ""}</div>
-          </div>
-          <Badge text={prop.status} color={statusColor} />
-        </div>
-
-        {/* Stats grid — like Monopoly player stats */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:12 }}>
-          {[
-            { label:"Market Value", value:$(prop.marketValue), color:C.text },
-            { label:"Equity", value:$(equity), color: equity > 0 ? "#4caf82" : "#e06c75" },
-            { label:"NOI", value:$(noi), color: noi > 0 ? "#4caf82" : "#e06c75" },
-          ].map(({ label, value, color }) => (
-            <div key={label} style={{ background:C.surface, borderRadius:6, padding:"8px 10px", border:`1px solid ${C.border}` }}>
-              <div style={{ fontSize:8, color:C.muted, fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:3 }}>{label}</div>
-              <div style={{ fontSize:12, fontWeight:800, color, fontFamily:"'IBM Plex Mono', monospace" }}>{value}</div>
-            </div>
-          ))}
-        </div>
-
-        <ReserveBar current={prop.currentReserve} goal={prop.reserveGoal} />
-
-        {/* LLC tag */}
-        <div style={{ marginTop:10, display:"flex", alignItems:"center", gap:6 }}>
-          <div style={{ width:8, height:8, borderRadius:2, background:llcColor, flexShrink:0 }} />
-          <span style={{ fontSize:9, color:C.muted, fontFamily:"'IBM Plex Mono', monospace" }}>{prop.llc}</span>
-        </div>
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClick,
+    style: {
+      background: C.card,
+      borderRadius: 12,
+      overflow: "hidden",
+      cursor: "pointer",
+      border: `1px solid ${isSelected ? llcColor : C.border}`,
+      boxShadow: isSelected ? `0 0 0 2px ${llcColor}44, 0 8px 32px rgba(0,0,0,0.5)` : "0 4px 16px rgba(0,0,0,0.3)",
+      transition: "all 0.2s",
+      transform: isSelected ? "translateY(-1px)" : "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 8,
+      background: `linear-gradient(90deg, ${llcColor}, ${llcColor}88)`,
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      right: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 8,
+      fontWeight: 900,
+      color: "rgba(255,255,255,0.9)",
+      letterSpacing: "0.15em",
+      textTransform: "uppercase",
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, prop.llc?.split(" ")[0])), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Playfair Display', serif",
+      fontSize: 14,
+      fontWeight: 700,
+      color: C.text,
+      lineHeight: 1.3
+    }
+  }, prop.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.muted,
+      marginTop: 2,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, prop.type, " \xB7 ", prop.units, " unit", prop.units > 1 ? "s" : "")), /*#__PURE__*/React.createElement(Badge, {
+    text: prop.status,
+    color: statusColor
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 8,
+      marginBottom: 12
+    }
+  }, [{
+    label: "Market Value",
+    value: $(prop.marketValue),
+    color: C.text
+  }, {
+    label: "Equity",
+    value: $(equity),
+    color: equity > 0 ? "#4caf82" : "#e06c75"
+  }, {
+    label: "NOI",
+    value: $(noi),
+    color: noi > 0 ? "#4caf82" : "#e06c75"
+  }].map(({
+    label,
+    value,
+    color
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: label,
+    style: {
+      background: C.surface,
+      borderRadius: 6,
+      padding: "8px 10px",
+      border: `1px solid ${C.border}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 8,
+      color: C.muted,
+      fontFamily: "'IBM Plex Mono', monospace",
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      marginBottom: 3
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      color,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, value)))), /*#__PURE__*/React.createElement(ReserveBar, {
+    current: prop.currentReserve,
+    goal: prop.reserveGoal
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 2,
+      background: llcColor,
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: C.muted,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, prop.llc))));
 }
 
 // ─── Property Detail Modal ────────────────────────────────────────────────────
-function PropertyModal({ prop, allProps, income, expenses, onClose, onSave, onDelete }) {
+function PropertyModal({
+  prop,
+  allProps,
+  income,
+  expenses,
+  onClose,
+  onSave,
+  onDelete
+}) {
   const [tab, setTab] = useState("overview");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ ...prop });
-  const [newInc, setNewInc] = useState({ amount:"", date:today(), note:"", tenant:"" });
-  const [newExp, setNewExp] = useState({ category:"Repairs", amount:"", date:today(), note:"", vendor:"", paymentMethod:"", recurring:false });
+  const [form, setForm] = useState({
+    ...prop
+  });
+  const [newInc, setNewInc] = useState({
+    amount: "",
+    date: today(),
+    note: "",
+    tenant: ""
+  });
+  const [newExp, setNewExp] = useState({
+    category: "Repairs",
+    amount: "",
+    date: today(),
+    note: "",
+    vendor: "",
+    paymentMethod: "",
+    recurring: false
+  });
   const [showAddInc, setShowAddInc] = useState(false);
   const [showAddExp, setShowAddExp] = useState(false);
-
   const llcColor = getLLCColor(prop.llc, allProps);
   const propInc = income.filter(i => i.propertyId === prop.id).reduce((s, i) => s + i.amount, 0);
   const propExp = expenses.filter(e => e.propertyId === prop.id).reduce((s, e) => s + e.amount, 0);
   const noi = propInc - propExp;
-
   const tabs = ["overview", "income", "expenses", "notes"];
-
-  return (
-    <Modal title={prop.name} onClose={onClose} width={620}>
-      {/* LLC color indicator */}
-      <div style={{ height:4, background:`linear-gradient(90deg,${llcColor},transparent)`, borderRadius:2, marginBottom:20, marginTop:-4 }} />
-
-      {/* Tab bar */}
-      <div style={{ display:"flex", gap:4, marginBottom:20, borderBottom:`1px solid ${C.border}`, paddingBottom:0 }}>
-        {tabs.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            background:"none", border:"none", cursor:"pointer", padding:"8px 14px",
-            fontSize:11, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase",
-            fontFamily:"'DM Sans', sans-serif",
-            color: tab === t ? llcColor : C.muted,
-            borderBottom: tab === t ? `2px solid ${llcColor}` : "2px solid transparent",
-            marginBottom:-1, transition:"all 0.15s",
-          }}>{t}</button>
-        ))}
-      </div>
-
-      {/* OVERVIEW TAB */}
-      {tab === "overview" && (
-        <div>
-          {editing ? (
-            <div>
-              {[
-                { label:"Property Name", key:"name", type:"text" },
-                { label:"Address", key:"address", type:"text" },
-                { label:"LLC", key:"llc", type:"text" },
-              ].map(({ label, key, type }) => (
-                <Field key={key} label={label}>
-                  <input value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} style={inputStyle} type={type} />
-                </Field>
-              ))}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-                <Field label="Property Type">
-                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={inputStyle}>
-                    {PROP_TYPES.map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </Field>
-                <Field label="Status">
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={inputStyle}>
-                    {STATUSES.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </Field>
-                <Field label="Units">
-                  <input type="number" value={form.units} onChange={e => setForm({ ...form, units: +e.target.value })} style={inputStyle} />
-                </Field>
-                <Field label="Purchase Price">
-                  <input type="number" value={form.purchasePrice} onChange={e => setForm({ ...form, purchasePrice: +e.target.value })} style={inputStyle} />
-                </Field>
-                <Field label="Market Value">
-                  <input type="number" value={form.marketValue} onChange={e => setForm({ ...form, marketValue: +e.target.value })} style={inputStyle} />
-                </Field>
-                <Field label="Reserve Goal">
-                  <input type="number" value={form.reserveGoal} onChange={e => setForm({ ...form, reserveGoal: +e.target.value })} style={inputStyle} />
-                </Field>
-                <Field label="Current Reserve">
-                  <input type="number" value={form.currentReserve} onChange={e => setForm({ ...form, currentReserve: +e.target.value })} style={inputStyle} />
-                </Field>
-              </div>
-              <div style={{ display:"flex", gap:8, marginTop:16 }}>
-                <Btn variant="gold" onClick={() => { onSave(form); setEditing(false); }}>Save Changes</Btn>
-                <Btn variant="ghost" onClick={() => { setForm({ ...prop }); setEditing(false); }}>Cancel</Btn>
-                <Btn variant="danger" onClick={() => onDelete(prop.id)} style={{ marginLeft:"auto" }}>Delete Property</Btn>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
-                {[
-                  { label:"Market Value", value:$(prop.marketValue) },
-                  { label:"Purchase Price", value:$(prop.purchasePrice) },
-                  { label:"Equity", value:$(prop.marketValue - prop.purchasePrice), color: "#4caf82" },
-                  { label:"Net Operating Income", value:$(noi), color: noi >= 0 ? "#4caf82" : "#e06c75" },
-                  { label:"Total Income", value:$(propInc), color:"#4caf82" },
-                  { label:"Total Expenses", value:$(propExp), color:"#e06c75" },
-                ].map(({ label, value, color }) => (
-                  <div key={label} style={{ background:C.surface, borderRadius:8, padding:"12px 14px", border:`1px solid ${C.border}` }}>
-                    <div style={{ fontSize:9, color:C.muted, fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:4 }}>{label}</div>
-                    <div style={{ fontSize:16, fontWeight:800, color: color || C.text, fontFamily:"'IBM Plex Mono', monospace" }}>{value}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ background:C.surface, borderRadius:8, padding:"14px 16px", border:`1px solid ${C.border}`, marginBottom:14 }}>
-                <ReserveBar current={prop.currentReserve} goal={prop.reserveGoal} />
-              </div>
-              <div style={{ fontSize:12, color:C.muted, marginBottom:16 }}>{prop.address}</div>
-              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <div style={{ width:10, height:10, borderRadius:2, background:llcColor }} />
-                <span style={{ fontSize:11, color:C.text }}>{prop.llc}</span>
-                <span style={{ marginLeft:"auto" }}><Badge text={prop.status} color={STATUS_COLOR[prop.status] || C.muted} /></span>
-              </div>
-              <div style={{ marginTop:16 }}><Btn variant="subtle" onClick={() => setEditing(true)}>✏ Edit Property</Btn></div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* INCOME TAB */}
-      {tab === "income" && (
-        <div>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-            <span style={{ fontSize:11, color:C.muted }}>Total: <strong style={{ color:"#4caf82" }}>{$(propInc)}</strong></span>
-            <Btn variant="gold" size="sm" onClick={() => setShowAddInc(!showAddInc)}>+ Add Income</Btn>
-          </div>
-          {showAddInc && (
-            <div style={{ background:C.surface, borderRadius:8, padding:14, border:`1px solid ${C.border}`, marginBottom:14 }}>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
-                <Field label="Amount"><input type="number" placeholder="0" value={newInc.amount} onChange={e => setNewInc({ ...newInc, amount: e.target.value })} style={inputStyle} /></Field>
-                <Field label="Date"><input type="date" value={newInc.date} onChange={e => setNewInc({ ...newInc, date: e.target.value })} style={inputStyle} /></Field>
-                <Field label="Tenant"><input value={newInc.tenant} onChange={e => setNewInc({ ...newInc, tenant: e.target.value })} style={inputStyle} /></Field>
-                <Field label="Note"><input value={newInc.note} onChange={e => setNewInc({ ...newInc, note: e.target.value })} style={inputStyle} /></Field>
-              </div>
-              <Btn variant="gold" size="sm" onClick={() => {
-                if (!newInc.amount) return;
-                onSave(null, { type:"income", data:{ ...newInc, id:uid(), propertyId:prop.id, amount:+newInc.amount } });
-                setNewInc({ amount:"", date:today(), note:"", tenant:"" });
-                setShowAddInc(false);
-              }}>Save Income</Btn>
-            </div>
-          )}
-          {income.filter(i => i.propertyId === prop.id).map(item => (
-            <div key={item.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:C.surface, borderRadius:7, border:`1px solid ${C.border}`, marginBottom:6 }}>
-              <div>
-                <div style={{ fontSize:12, color:C.text, fontWeight:600 }}>{item.note || "Rent"}</div>
-                <div style={{ fontSize:10, color:C.muted, fontFamily:"'IBM Plex Mono', monospace" }}>{item.tenant} · {item.date}</div>
-              </div>
-              <div style={{ fontSize:14, fontWeight:800, color:"#4caf82", fontFamily:"'IBM Plex Mono', monospace" }}>{$(item.amount)}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* EXPENSES TAB */}
-      {tab === "expenses" && (
-        <div>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-            <span style={{ fontSize:11, color:C.muted }}>Total: <strong style={{ color:"#e06c75" }}>{$(propExp)}</strong></span>
-            <Btn variant="gold" size="sm" onClick={() => setShowAddExp(!showAddExp)}>+ Add Expense</Btn>
-          </div>
-          {showAddExp && (
-            <div style={{ background:C.surface, borderRadius:8, padding:14, border:`1px solid ${C.border}`, marginBottom:14 }}>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
-                <Field label="Category">
-                  <select value={newExp.category} onChange={e => setNewExp({ ...newExp, category: e.target.value })} style={inputStyle}>
-                    {EXPENSE_CATS.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </Field>
-                <Field label="Amount"><input type="number" placeholder="0" value={newExp.amount} onChange={e => setNewExp({ ...newExp, amount: e.target.value })} style={inputStyle} /></Field>
-                <Field label="Date"><input type="date" value={newExp.date} onChange={e => setNewExp({ ...newExp, date: e.target.value })} style={inputStyle} /></Field>
-                <Field label="Payment Method">
-                  <select value={newExp.paymentMethod} onChange={e => setNewExp({ ...newExp, paymentMethod: e.target.value })} style={inputStyle}>
-                    <option value="">—</option>
-                    {PAY_METHODS.map(m => <option key={m}>{m}</option>)}
-                  </select>
-                </Field>
-                <Field label="Vendor"><input value={newExp.vendor} onChange={e => setNewExp({ ...newExp, vendor: e.target.value })} style={inputStyle} /></Field>
-                <Field label="Note"><input value={newExp.note} onChange={e => setNewExp({ ...newExp, note: e.target.value })} style={inputStyle} /></Field>
-              </div>
-              <Btn variant="gold" size="sm" onClick={() => {
-                if (!newExp.amount) return;
-                onSave(null, { type:"expense", data:{ ...newExp, id:uid(), propertyId:prop.id, amount:+newExp.amount } });
-                setNewExp({ category:"Repairs", amount:"", date:today(), note:"", vendor:"", paymentMethod:"", recurring:false });
-                setShowAddExp(false);
-              }}>Save Expense</Btn>
-            </div>
-          )}
-          {expenses.filter(e => e.propertyId === prop.id).map(item => (
-            <div key={item.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:C.surface, borderRadius:7, border:`1px solid ${C.border}`, marginBottom:6 }}>
-              <div>
-                <div style={{ fontSize:12, color:C.text, fontWeight:600 }}>{item.category}</div>
-                <div style={{ fontSize:10, color:C.muted, fontFamily:"'IBM Plex Mono', monospace" }}>{item.vendor || item.note || "—"} · {item.date}</div>
-              </div>
-              <div style={{ fontSize:14, fontWeight:800, color:"#e06c75", fontFamily:"'IBM Plex Mono', monospace" }}>{$(item.amount)}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* NOTES TAB */}
-      {tab === "notes" && (
-        <div>
-          <textarea
-            value={form.notes || ""}
-            onChange={e => setForm({ ...form, notes: e.target.value })}
-            onBlur={() => onSave({ ...prop, notes: form.notes })}
-            placeholder="Property notes, condition, tenant history..."
-            rows={8}
-            style={{ ...inputStyle, resize:"vertical", lineHeight:1.6 }}
-          />
-        </div>
-      )}
-    </Modal>
-  );
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: prop.name,
+    onClose: onClose,
+    width: 620
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 4,
+      background: `linear-gradient(90deg,${llcColor},transparent)`,
+      borderRadius: 2,
+      marginBottom: 20,
+      marginTop: -4
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      marginBottom: 20,
+      borderBottom: `1px solid ${C.border}`,
+      paddingBottom: 0
+    }
+  }, tabs.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t,
+    onClick: () => setTab(t),
+    style: {
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      padding: "8px 14px",
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      fontFamily: "'DM Sans', sans-serif",
+      color: tab === t ? llcColor : C.muted,
+      borderBottom: tab === t ? `2px solid ${llcColor}` : "2px solid transparent",
+      marginBottom: -1,
+      transition: "all 0.15s"
+    }
+  }, t))), tab === "overview" && /*#__PURE__*/React.createElement("div", null, editing ? /*#__PURE__*/React.createElement("div", null, [{
+    label: "Property Name",
+    key: "name",
+    type: "text"
+  }, {
+    label: "Address",
+    key: "address",
+    type: "text"
+  }, {
+    label: "LLC",
+    key: "llc",
+    type: "text"
+  }].map(({
+    label,
+    key,
+    type
+  }) => /*#__PURE__*/React.createElement(Field, {
+    key: key,
+    label: label
+  }, /*#__PURE__*/React.createElement("input", {
+    value: form[key] || "",
+    onChange: e => setForm({
+      ...form,
+      [key]: e.target.value
+    }),
+    style: inputStyle,
+    type: type
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Property Type"
+  }, /*#__PURE__*/React.createElement("select", {
+    value: form.type,
+    onChange: e => setForm({
+      ...form,
+      type: e.target.value
+    }),
+    style: inputStyle
+  }, PROP_TYPES.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t
+  }, t)))), /*#__PURE__*/React.createElement(Field, {
+    label: "Status"
+  }, /*#__PURE__*/React.createElement("select", {
+    value: form.status,
+    onChange: e => setForm({
+      ...form,
+      status: e.target.value
+    }),
+    style: inputStyle
+  }, STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
+    key: s
+  }, s)))), /*#__PURE__*/React.createElement(Field, {
+    label: "Units"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: form.units,
+    onChange: e => setForm({
+      ...form,
+      units: +e.target.value
+    }),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Purchase Price"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: form.purchasePrice,
+    onChange: e => setForm({
+      ...form,
+      purchasePrice: +e.target.value
+    }),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Market Value"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: form.marketValue,
+    onChange: e => setForm({
+      ...form,
+      marketValue: +e.target.value
+    }),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Reserve Goal"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: form.reserveGoal,
+    onChange: e => setForm({
+      ...form,
+      reserveGoal: +e.target.value
+    }),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Current Reserve"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: form.currentReserve,
+    onChange: e => setForm({
+      ...form,
+      currentReserve: +e.target.value
+    }),
+    style: inputStyle
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement(Btn, {
+    variant: "gold",
+    onClick: () => {
+      onSave(form);
+      setEditing(false);
+    }
+  }, "Save Changes"), /*#__PURE__*/React.createElement(Btn, {
+    variant: "ghost",
+    onClick: () => {
+      setForm({
+        ...prop
+      });
+      setEditing(false);
+    }
+  }, "Cancel"), /*#__PURE__*/React.createElement(Btn, {
+    variant: "danger",
+    onClick: () => onDelete(prop.id),
+    style: {
+      marginLeft: "auto"
+    }
+  }, "Delete Property"))) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10,
+      marginBottom: 16
+    }
+  }, [{
+    label: "Market Value",
+    value: $(prop.marketValue)
+  }, {
+    label: "Purchase Price",
+    value: $(prop.purchasePrice)
+  }, {
+    label: "Equity",
+    value: $(prop.marketValue - prop.purchasePrice),
+    color: "#4caf82"
+  }, {
+    label: "Net Operating Income",
+    value: $(noi),
+    color: noi >= 0 ? "#4caf82" : "#e06c75"
+  }, {
+    label: "Total Income",
+    value: $(propInc),
+    color: "#4caf82"
+  }, {
+    label: "Total Expenses",
+    value: $(propExp),
+    color: "#e06c75"
+  }].map(({
+    label,
+    value,
+    color
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: label,
+    style: {
+      background: C.surface,
+      borderRadius: 8,
+      padding: "12px 14px",
+      border: `1px solid ${C.border}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.muted,
+      fontFamily: "'IBM Plex Mono', monospace",
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      marginBottom: 4
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 800,
+      color: color || C.text,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, value)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.surface,
+      borderRadius: 8,
+      padding: "14px 16px",
+      border: `1px solid ${C.border}`,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement(ReserveBar, {
+    current: prop.currentReserve,
+    goal: prop.reserveGoal
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: C.muted,
+      marginBottom: 16
+    }
+  }, prop.address), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 10,
+      height: 10,
+      borderRadius: 2,
+      background: llcColor
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: C.text
+    }
+  }, prop.llc), /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto"
+    }
+  }, /*#__PURE__*/React.createElement(Badge, {
+    text: prop.status,
+    color: STATUS_COLOR[prop.status] || C.muted
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement(Btn, {
+    variant: "subtle",
+    onClick: () => setEditing(true)
+  }, "\u270F Edit Property")))), tab === "income" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: C.muted
+    }
+  }, "Total: ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "#4caf82"
+    }
+  }, $(propInc))), /*#__PURE__*/React.createElement(Btn, {
+    variant: "gold",
+    size: "sm",
+    onClick: () => setShowAddInc(!showAddInc)
+  }, "+ Add Income")), showAddInc && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.surface,
+      borderRadius: 8,
+      padding: 14,
+      border: `1px solid ${C.border}`,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Amount"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    placeholder: "0",
+    value: newInc.amount,
+    onChange: e => setNewInc({
+      ...newInc,
+      amount: e.target.value
+    }),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Date"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: newInc.date,
+    onChange: e => setNewInc({
+      ...newInc,
+      date: e.target.value
+    }),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Tenant"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: newInc.tenant,
+    onChange: e => setNewInc({
+      ...newInc,
+      tenant: e.target.value
+    }),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Note"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: newInc.note,
+    onChange: e => setNewInc({
+      ...newInc,
+      note: e.target.value
+    }),
+    style: inputStyle
+  }))), /*#__PURE__*/React.createElement(Btn, {
+    variant: "gold",
+    size: "sm",
+    onClick: () => {
+      if (!newInc.amount) return;
+      onSave(null, {
+        type: "income",
+        data: {
+          ...newInc,
+          id: uid(),
+          propertyId: prop.id,
+          amount: +newInc.amount
+        }
+      });
+      setNewInc({
+        amount: "",
+        date: today(),
+        note: "",
+        tenant: ""
+      });
+      setShowAddInc(false);
+    }
+  }, "Save Income")), income.filter(i => i.propertyId === prop.id).map(item => /*#__PURE__*/React.createElement("div", {
+    key: item.id,
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "10px 14px",
+      background: C.surface,
+      borderRadius: 7,
+      border: `1px solid ${C.border}`,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: C.text,
+      fontWeight: 600
+    }
+  }, item.note || "Rent"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: C.muted,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, item.tenant, " \xB7 ", item.date)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: "#4caf82",
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, $(item.amount))))), tab === "expenses" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: C.muted
+    }
+  }, "Total: ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "#e06c75"
+    }
+  }, $(propExp))), /*#__PURE__*/React.createElement(Btn, {
+    variant: "gold",
+    size: "sm",
+    onClick: () => setShowAddExp(!showAddExp)
+  }, "+ Add Expense")), showAddExp && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.surface,
+      borderRadius: 8,
+      padding: 14,
+      border: `1px solid ${C.border}`,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Category"
+  }, /*#__PURE__*/React.createElement("select", {
+    value: newExp.category,
+    onChange: e => setNewExp({
+      ...newExp,
+      category: e.target.value
+    }),
+    style: inputStyle
+  }, EXPENSE_CATS.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c
+  }, c)))), /*#__PURE__*/React.createElement(Field, {
+    label: "Amount"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    placeholder: "0",
+    value: newExp.amount,
+    onChange: e => setNewExp({
+      ...newExp,
+      amount: e.target.value
+    }),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Date"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: newExp.date,
+    onChange: e => setNewExp({
+      ...newExp,
+      date: e.target.value
+    }),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Payment Method"
+  }, /*#__PURE__*/React.createElement("select", {
+    value: newExp.paymentMethod,
+    onChange: e => setNewExp({
+      ...newExp,
+      paymentMethod: e.target.value
+    }),
+    style: inputStyle
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), PAY_METHODS.map(m => /*#__PURE__*/React.createElement("option", {
+    key: m
+  }, m)))), /*#__PURE__*/React.createElement(Field, {
+    label: "Vendor"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: newExp.vendor,
+    onChange: e => setNewExp({
+      ...newExp,
+      vendor: e.target.value
+    }),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Note"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: newExp.note,
+    onChange: e => setNewExp({
+      ...newExp,
+      note: e.target.value
+    }),
+    style: inputStyle
+  }))), /*#__PURE__*/React.createElement(Btn, {
+    variant: "gold",
+    size: "sm",
+    onClick: () => {
+      if (!newExp.amount) return;
+      onSave(null, {
+        type: "expense",
+        data: {
+          ...newExp,
+          id: uid(),
+          propertyId: prop.id,
+          amount: +newExp.amount
+        }
+      });
+      setNewExp({
+        category: "Repairs",
+        amount: "",
+        date: today(),
+        note: "",
+        vendor: "",
+        paymentMethod: "",
+        recurring: false
+      });
+      setShowAddExp(false);
+    }
+  }, "Save Expense")), expenses.filter(e => e.propertyId === prop.id).map(item => /*#__PURE__*/React.createElement("div", {
+    key: item.id,
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "10px 14px",
+      background: C.surface,
+      borderRadius: 7,
+      border: `1px solid ${C.border}`,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: C.text,
+      fontWeight: 600
+    }
+  }, item.category), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: C.muted,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, item.vendor || item.note || "—", " \xB7 ", item.date)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: "#e06c75",
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, $(item.amount))))), tab === "notes" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("textarea", {
+    value: form.notes || "",
+    onChange: e => setForm({
+      ...form,
+      notes: e.target.value
+    }),
+    onBlur: () => onSave({
+      ...prop,
+      notes: form.notes
+    }),
+    placeholder: "Property notes, condition, tenant history...",
+    rows: 8,
+    style: {
+      ...inputStyle,
+      resize: "vertical",
+      lineHeight: 1.6
+    }
+  })));
 }
 
 // ─── Add Property Modal ────────────────────────────────────────────────────────
-function AddPropertyModal({ onSave, onClose }) {
-  const [form, setForm] = useState({ name:"", type:"Single Family", units:1, address:"", purchasePrice:"", marketValue:"", llc:"", status:"Occupied", notes:"", reserveGoal:10000, currentReserve:0 });
-  const f = (key) => (e) => setForm({ ...form, [key]: e.target.value });
-
-  return (
-    <Modal title="Add Property" onClose={onClose}>
-      <Field label="Property Name"><input value={form.name} onChange={f("name")} placeholder="e.g. 1842 Harlem Ave" style={inputStyle} /></Field>
-      <Field label="Address"><input value={form.address} onChange={f("address")} placeholder="Full address" style={inputStyle} /></Field>
-      <Field label="LLC"><input value={form.llc} onChange={f("llc")} placeholder="e.g. Brick & Mortar LLC" style={inputStyle} /></Field>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-        <Field label="Type"><select value={form.type} onChange={f("type")} style={inputStyle}>{PROP_TYPES.map(t => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Status"><select value={form.status} onChange={f("status")} style={inputStyle}>{STATUSES.map(s => <option key={s}>{s}</option>)}</select></Field>
-        <Field label="Units"><input type="number" value={form.units} onChange={f("units")} style={inputStyle} /></Field>
-        <Field label="Purchase Price"><input type="number" value={form.purchasePrice} onChange={f("purchasePrice")} placeholder="0" style={inputStyle} /></Field>
-        <Field label="Market Value"><input type="number" value={form.marketValue} onChange={f("marketValue")} placeholder="0" style={inputStyle} /></Field>
-        <Field label="Reserve Goal"><input type="number" value={form.reserveGoal} onChange={f("reserveGoal")} style={inputStyle} /></Field>
-        <Field label="Current Reserve"><input type="number" value={form.currentReserve} onChange={f("currentReserve")} style={inputStyle} /></Field>
-      </div>
-      <div style={{ marginTop:16 }}>
-        <Btn variant="gold" onClick={() => { if (!form.name) return; onSave({ ...form, id:uid(), units:+form.units, purchasePrice:+form.purchasePrice, marketValue:+form.marketValue, reserveGoal:+form.reserveGoal, currentReserve:+form.currentReserve }); onClose(); }}>Add Property</Btn>
-      </div>
-    </Modal>
-  );
+function AddPropertyModal({
+  onSave,
+  onClose
+}) {
+  const [form, setForm] = useState({
+    name: "",
+    type: "Single Family",
+    units: 1,
+    address: "",
+    purchasePrice: "",
+    marketValue: "",
+    llc: "",
+    status: "Occupied",
+    notes: "",
+    reserveGoal: 10000,
+    currentReserve: 0
+  });
+  const f = key => e => setForm({
+    ...form,
+    [key]: e.target.value
+  });
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: "Add Property",
+    onClose: onClose
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Property Name"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: form.name,
+    onChange: f("name"),
+    placeholder: "e.g. 1842 Harlem Ave",
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Address"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: form.address,
+    onChange: f("address"),
+    placeholder: "Full address",
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "LLC"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: form.llc,
+    onChange: f("llc"),
+    placeholder: "e.g. Brick & Mortar LLC",
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Type"
+  }, /*#__PURE__*/React.createElement("select", {
+    value: form.type,
+    onChange: f("type"),
+    style: inputStyle
+  }, PROP_TYPES.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t
+  }, t)))), /*#__PURE__*/React.createElement(Field, {
+    label: "Status"
+  }, /*#__PURE__*/React.createElement("select", {
+    value: form.status,
+    onChange: f("status"),
+    style: inputStyle
+  }, STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
+    key: s
+  }, s)))), /*#__PURE__*/React.createElement(Field, {
+    label: "Units"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: form.units,
+    onChange: f("units"),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Purchase Price"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: form.purchasePrice,
+    onChange: f("purchasePrice"),
+    placeholder: "0",
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Market Value"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: form.marketValue,
+    onChange: f("marketValue"),
+    placeholder: "0",
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Reserve Goal"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: form.reserveGoal,
+    onChange: f("reserveGoal"),
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Current Reserve"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: form.currentReserve,
+    onChange: f("currentReserve"),
+    style: inputStyle
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement(Btn, {
+    variant: "gold",
+    onClick: () => {
+      if (!form.name) return;
+      onSave({
+        ...form,
+        id: uid(),
+        units: +form.units,
+        purchasePrice: +form.purchasePrice,
+        marketValue: +form.marketValue,
+        reserveGoal: +form.reserveGoal,
+        currentReserve: +form.currentReserve
+      });
+      onClose();
+    }
+  }, "Add Property")));
 }
 
 // ─── Task Card ─────────────────────────────────────────────────────────────────
-function TaskCard({ card, allProps, onUpdate, onDelete }) {
+function TaskCard({
+  card,
+  allProps,
+  onUpdate,
+  onDelete
+}) {
   const [expanded, setExpanded] = useState(false);
   const prop = allProps.find(p => p.id === card.propertyId);
   const llcColor = prop ? getLLCColor(prop.llc, allProps) : null;
   const overdue = card.dueDate && card.dueDate < today();
-
-  return (
-    <div style={{
-      background: C.card, border:`1px solid ${C.border}`, borderRadius:8,
-      marginBottom:6, overflow:"hidden", cursor:"pointer",
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 8,
+      marginBottom: 6,
+      overflow: "hidden",
+      cursor: "pointer",
       borderLeft: llcColor ? `3px solid ${llcColor}` : `3px solid ${C.border}`,
-      transition:"all 0.15s",
-    }}>
-      <div onClick={() => setExpanded(!expanded)} style={{ padding:"10px 12px" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
-          <span style={{ fontSize:12, color:C.text, fontWeight:600, lineHeight:1.4, flex:1 }}>{card.title}</span>
-          {card.priority && <span style={{ fontSize:8, fontWeight:800, letterSpacing:"0.1em", color:PRIORITY_COLOR[card.priority], fontFamily:"'IBM Plex Mono', monospace", flexShrink:0 }}>{card.priority}</span>}
-        </div>
-        <div style={{ display:"flex", gap:8, marginTop:6, alignItems:"center" }}>
-          {prop && <span style={{ fontSize:9, color: llcColor, fontFamily:"'IBM Plex Mono', monospace", background:`${llcColor}18`, padding:"2px 6px", borderRadius:3 }}>{prop.name}</span>}
-          {card.dueDate && <span style={{ fontSize:9, color: overdue ? "#e06c75" : C.muted, fontFamily:"'IBM Plex Mono', monospace" }}>📅 {card.dueDate}</span>}
-        </div>
-      </div>
-      {expanded && (
-        <div style={{ padding:"0 12px 12px", borderTop:`1px solid ${C.border}`, paddingTop:10 }}>
-          {card.description && <p style={{ fontSize:11, color:C.muted, marginBottom:10, lineHeight:1.5 }}>{card.description}</p>}
-          <div style={{ display:"flex", gap:6 }}>
-            <Btn variant="ghost" size="sm" onClick={() => {
-              const title = prompt("Edit title:", card.title);
-              if (title) onUpdate({ ...card, title });
-            }}>✏ Edit</Btn>
-            <Btn variant="danger" size="sm" onClick={() => onDelete(card.id)}>Delete</Btn>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+      transition: "all 0.15s"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: () => setExpanded(!expanded),
+    style: {
+      padding: "10px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: C.text,
+      fontWeight: 600,
+      lineHeight: 1.4,
+      flex: 1
+    }
+  }, card.title), card.priority && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 8,
+      fontWeight: 800,
+      letterSpacing: "0.1em",
+      color: PRIORITY_COLOR[card.priority],
+      fontFamily: "'IBM Plex Mono', monospace",
+      flexShrink: 0
+    }
+  }, card.priority)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 6,
+      alignItems: "center"
+    }
+  }, prop && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: llcColor,
+      fontFamily: "'IBM Plex Mono', monospace",
+      background: `${llcColor}18`,
+      padding: "2px 6px",
+      borderRadius: 3
+    }
+  }, prop.name), card.dueDate && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: overdue ? "#e06c75" : C.muted,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, "\uD83D\uDCC5 ", card.dueDate))), expanded && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 12px 12px",
+      borderTop: `1px solid ${C.border}`,
+      paddingTop: 10
+    }
+  }, card.description && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      marginBottom: 10,
+      lineHeight: 1.5
+    }
+  }, card.description), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement(Btn, {
+    variant: "ghost",
+    size: "sm",
+    onClick: () => {
+      const title = prompt("Edit title:", card.title);
+      if (title) onUpdate({
+        ...card,
+        title
+      });
+    }
+  }, "\u270F Edit"), /*#__PURE__*/React.createElement(Btn, {
+    variant: "danger",
+    size: "sm",
+    onClick: () => onDelete(card.id)
+  }, "Delete"))));
 }
 
 // ─── Kanban List ──────────────────────────────────────────────────────────────
-function KanbanList({ list, cards, allProps, onAddCard, onUpdateCard, onDeleteCard }) {
+function KanbanList({
+  list,
+  cards,
+  allProps,
+  onAddCard,
+  onUpdateCard,
+  onDeleteCard
+}) {
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
-
-  return (
-    <div style={{ minWidth:220, maxWidth:220, flexShrink:0, display:"flex", flexDirection:"column" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-        <span style={{ fontSize:11, fontWeight:700, color:C.text, letterSpacing:"0.08em", textTransform:"uppercase", fontFamily:"'DM Sans', sans-serif" }}>{list.title}</span>
-        <span style={{ fontSize:10, color:C.muted, background:C.surface, padding:"2px 7px", borderRadius:10, border:`1px solid ${C.border}` }}>{cards.length}</span>
-      </div>
-      <div style={{ flex:1, overflowY:"auto", maxHeight:"calc(100vh - 220px)", paddingRight:2 }}>
-        {cards.map(card => (
-          <TaskCard key={card.id} card={card} allProps={allProps} onUpdate={onUpdateCard} onDelete={onDeleteCard} />
-        ))}
-      </div>
-      {adding ? (
-        <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:8, padding:10, marginTop:6 }}>
-          <textarea
-            autoFocus value={title} onChange={e => setTitle(e.target.value)}
-            placeholder="Task title..."
-            rows={2}
-            style={{ ...inputStyle, resize:"none", marginBottom:8, fontSize:12 }}
-            onKeyDown={e => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (title.trim()) { onAddCard(list.id, title.trim()); setTitle(""); setAdding(false); } }
-              if (e.key === "Escape") { setAdding(false); setTitle(""); }
-            }}
-          />
-          <div style={{ display:"flex", gap:6 }}>
-            <Btn variant="gold" size="sm" onClick={() => { if (title.trim()) { onAddCard(list.id, title.trim()); setTitle(""); setAdding(false); } }}>Add</Btn>
-            <Btn variant="ghost" size="sm" onClick={() => { setAdding(false); setTitle(""); }}>Cancel</Btn>
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => setAdding(true)} style={{ marginTop:6, width:"100%", padding:"8px", background:"transparent", border:`1px dashed ${C.dim}`, borderRadius:7, color:C.muted, fontSize:11, cursor:"pointer", fontFamily:"'DM Sans', sans-serif", transition:"all 0.15s" }}>
-          + Add task
-        </button>
-      )}
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: 220,
+      maxWidth: 220,
+      flexShrink: 0,
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: C.text,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      fontFamily: "'DM Sans', sans-serif"
+    }
+  }, list.title), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: C.muted,
+      background: C.surface,
+      padding: "2px 7px",
+      borderRadius: 10,
+      border: `1px solid ${C.border}`
+    }
+  }, cards.length)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto",
+      maxHeight: "calc(100vh - 220px)",
+      paddingRight: 2
+    }
+  }, cards.map(card => /*#__PURE__*/React.createElement(TaskCard, {
+    key: card.id,
+    card: card,
+    allProps: allProps,
+    onUpdate: onUpdateCard,
+    onDelete: onDeleteCard
+  }))), adding ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 8,
+      padding: 10,
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("textarea", {
+    autoFocus: true,
+    value: title,
+    onChange: e => setTitle(e.target.value),
+    placeholder: "Task title...",
+    rows: 2,
+    style: {
+      ...inputStyle,
+      resize: "none",
+      marginBottom: 8,
+      fontSize: 12
+    },
+    onKeyDown: e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (title.trim()) {
+          onAddCard(list.id, title.trim());
+          setTitle("");
+          setAdding(false);
+        }
+      }
+      if (e.key === "Escape") {
+        setAdding(false);
+        setTitle("");
+      }
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement(Btn, {
+    variant: "gold",
+    size: "sm",
+    onClick: () => {
+      if (title.trim()) {
+        onAddCard(list.id, title.trim());
+        setTitle("");
+        setAdding(false);
+      }
+    }
+  }, "Add"), /*#__PURE__*/React.createElement(Btn, {
+    variant: "ghost",
+    size: "sm",
+    onClick: () => {
+      setAdding(false);
+      setTitle("");
+    }
+  }, "Cancel"))) : /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAdding(true),
+    style: {
+      marginTop: 6,
+      width: "100%",
+      padding: "8px",
+      background: "transparent",
+      border: `1px dashed ${C.dim}`,
+      borderRadius: 7,
+      color: C.muted,
+      fontSize: 11,
+      cursor: "pointer",
+      fontFamily: "'DM Sans', sans-serif",
+      transition: "all 0.15s"
+    }
+  }, "+ Add task"));
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 function App() {
   const [properties, setProperties, propsReady] = useServerStorage("pc:properties", SEED.properties);
-  const [expenses, setExpenses, expReady]       = useServerStorage("pc:expenses",   SEED.expenses);
-  const [income, setIncome, incReady]           = useServerStorage("pc:income",     SEED.income);
+  const [expenses, setExpenses, expReady] = useServerStorage("pc:expenses", SEED.expenses);
+  const [income, setIncome, incReady] = useServerStorage("pc:income", SEED.income);
   const [boards, setBoards, boardsReady] = useServerStorage("pc:boards", [], false);
-  const [lists, setLists, listsReady]   = useServerStorage("pc:lists",  [], false);
-  const [cards, setCards, cardsReady]   = useServerStorage("pc:cards",  [], false);
-
+  const [lists, setLists, listsReady] = useServerStorage("pc:lists", [], false);
+  const [cards, setCards, cardsReady] = useServerStorage("pc:cards", [], false);
   const [selectedPropId, setSelectedPropId] = useState(null);
   const [propModal, setPropModal] = useState(null); // prop object
   const [showAddProp, setShowAddProp] = useState(false);
   const [activeBoardId, setActiveBoardId] = useState(null);
-
   const ready = propsReady && expReady && incReady && boardsReady && listsReady && cardsReady;
-
   useEffect(() => {
     if (boards.length > 0 && !activeBoardId) {
       setActiveBoardId(boards[0].id);
@@ -628,40 +1778,39 @@ function App() {
   }, [boards, activeBoardId]);
 
   // ── Computed ─────────────────────────────────────────────────────────────────
-  const totalValue   = useMemo(() => properties.reduce((s, p) => s + p.marketValue, 0), [properties]);
-  const totalEquity  = useMemo(() => properties.reduce((s, p) => s + (p.marketValue - p.purchasePrice), 0), [properties]);
-  const totalIncome  = useMemo(() => income.reduce((s, i) => s + i.amount, 0), [income]);
+  const totalValue = useMemo(() => properties.reduce((s, p) => s + p.marketValue, 0), [properties]);
+  const totalEquity = useMemo(() => properties.reduce((s, p) => s + (p.marketValue - p.purchasePrice), 0), [properties]);
+  const totalIncome = useMemo(() => income.reduce((s, i) => s + i.amount, 0), [income]);
   const totalExpenses = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
-  const totalNOI     = totalIncome - totalExpenses;
-
+  const totalNOI = totalIncome - totalExpenses;
   const activeBoard = boards.find(b => b.id === activeBoardId);
   // Normalize Grasshopper's board.background -> board.color so PC renders correctly
-  const normalizedBoards = boards.map(b => ({ ...b, color: b.color || b.background || C.gold }));
+  const normalizedBoards = boards.map(b => ({
+    ...b,
+    color: b.color || b.background || C.gold
+  }));
   const activeLists = lists.filter(l => l.boardId === activeBoardId).sort((a, b) => a.order - b.order);
 
   // Filter tasks by selected property
-  const filteredCards = (listId) => {
+  const filteredCards = listId => {
     const listCards = cards.filter(c => c.listId === listId && !c.archived);
     if (!selectedPropId) return listCards;
     return listCards.filter(c => c.propertyId === selectedPropId || !c.propertyId);
   };
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-  const saveProp = (updated) => {
+  const saveProp = updated => {
     setProperties(prev => prev.map(p => p.id === updated.id ? updated : p));
     if (propModal?.id === updated.id) setPropModal(updated);
   };
-
-  const addProp = (p) => setProperties(prev => [...prev, p]);
-
-  const deleteProp = (id) => {
+  const addProp = p => setProperties(prev => [...prev, p]);
+  const deleteProp = id => {
     if (!confirm("Delete this property and all its data?")) return;
     setProperties(prev => prev.filter(p => p.id !== id));
     setIncome(prev => prev.filter(i => i.propertyId !== id));
     setExpenses(prev => prev.filter(e => e.propertyId !== id));
     setPropModal(null);
   };
-
   const handlePropModalSave = (propUpdate, txn) => {
     if (propUpdate) saveProp(propUpdate);
     if (txn) {
@@ -669,194 +1818,397 @@ function App() {
       if (txn.type === "expense") setExpenses(prev => [...prev, txn.data]);
     }
   };
-
   const addCard = (listId, title) => {
-    const newCard = { id:uid(), listId, title, description:"", dueDate:"", priority:"Medium", propertyId:selectedPropId || null, labels:[], checklist:[], archived:false };
+    const newCard = {
+      id: uid(),
+      listId,
+      title,
+      description: "",
+      dueDate: "",
+      priority: "Medium",
+      propertyId: selectedPropId || null,
+      labels: [],
+      checklist: [],
+      archived: false
+    };
     setCards(prev => [...prev, newCard]);
   };
-
-  const updateCard = (updated) => setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
-  const deleteCard = (id) => setCards(prev => prev.filter(c => c.id !== id));
-
+  const updateCard = updated => setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
+  const deleteCard = id => setCards(prev => prev.filter(c => c.id !== id));
   const addBoard = () => {
     const title = prompt("New board name:");
     if (!title) return;
-    const b = { id:uid(), title, color:C.gold };
+    const b = {
+      id: uid(),
+      title,
+      color: C.gold
+    };
     setBoards(prev => [...prev, b]);
     setActiveBoardId(b.id);
     // Add default lists
-    const newLists = ["To Do","In Progress","Done"].map((t, i) => ({ id:uid(), boardId:b.id, title:t, order:i }));
+    const newLists = ["To Do", "In Progress", "Done"].map((t, i) => ({
+      id: uid(),
+      boardId: b.id,
+      title: t,
+      order: i
+    }));
     setLists(prev => [...prev, ...newLists]);
   };
 
   // ── Loading state ─────────────────────────────────────────────────────────────
-  if (!ready) return (
-    <div style={{ background:C.bg, height:"100vh", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16 }}>
-      <div style={{ width:40, height:40, border:`3px solid ${C.border}`, borderTopColor:C.gold, borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <span style={{ color:C.muted, fontFamily:"'IBM Plex Mono', monospace", fontSize:11, letterSpacing:"0.15em" }}>LOADING PORTFOLIO DATA</span>
-    </div>
-  );
-
-  return (
-    <div style={{ background:C.bg, minHeight:"100vh", fontFamily:"'DM Sans', sans-serif", color:C.text }}>
-      <style>{`
+  if (!ready) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.bg,
+      height: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexDirection: "column",
+      gap: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 40,
+      height: 40,
+      border: `3px solid ${C.border}`,
+      borderTopColor: C.gold,
+      borderRadius: "50%",
+      animation: "spin 0.8s linear infinite"
+    }
+  }), /*#__PURE__*/React.createElement("style", null, `@keyframes spin { to { transform: rotate(360deg); } }`), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.muted,
+      fontFamily: "'IBM Plex Mono', monospace",
+      fontSize: 11,
+      letterSpacing: "0.15em"
+    }
+  }, "LOADING PORTFOLIO DATA"));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.bg,
+      minHeight: "100vh",
+      fontFamily: "'DM Sans', sans-serif",
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #2a2a40; border-radius: 2px; }
         select option { background: #13131f; }
-      `}</style>
-
-      {/* ── Header ── */}
-      <div style={{ background:`${C.surface}ee`, backdropFilter:"blur(10px)", borderBottom:`1px solid ${C.border}`, padding:"12px 24px", display:"flex", alignItems:"center", gap:20, position:"sticky", top:0, zIndex:100 }}>
-        <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
-          <span style={{ fontFamily:"'Playfair Display', serif", fontSize:20, fontWeight:900, color:C.gold, letterSpacing:"-0.02em" }}>Portfolio</span>
-          <span style={{ fontFamily:"'Playfair Display', serif", fontSize:20, fontWeight:900, color:C.text, letterSpacing:"-0.02em" }}>Command</span>
-        </div>
-
-        {/* Global stats pill */}
-        <div style={{ display:"flex", gap:1, background:C.card, border:`1px solid ${C.border}`, borderRadius:8, overflow:"hidden", marginLeft:"auto" }}>
-          {[
-            { label:"Portfolio", value:$(totalValue) },
-            { label:"Equity", value:$(totalEquity), color:"#4caf82" },
-            { label:"NOI", value:$(totalNOI), color: totalNOI >= 0 ? "#4caf82" : "#e06c75" },
-            { label:"Properties", value:properties.length },
-          ].map(({ label, value, color }) => (
-            <div key={label} style={{ padding:"8px 14px", borderRight:`1px solid ${C.border}` }}>
-              <div style={{ fontSize:8, color:C.muted, letterSpacing:"0.12em", textTransform:"uppercase", fontFamily:"'IBM Plex Mono', monospace", marginBottom:2 }}>{label}</div>
-              <div style={{ fontSize:13, fontWeight:800, color: color || C.text, fontFamily:"'IBM Plex Mono', monospace" }}>{value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Main Layout ── */}
-      <div style={{ display:"grid", gridTemplateColumns:"420px 1fr", height:"calc(100vh - 57px)" }}>
-
-        {/* ── LEFT: Portfolio Panel ── */}
-        <div style={{ borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-          <div style={{ padding:"16px 16px 10px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
-            <div>
-              <div style={{ fontFamily:"'Playfair Display', serif", fontSize:14, fontWeight:700, color:C.text }}>Properties</div>
-              {selectedPropId && <div style={{ fontSize:9, color:C.gold, fontFamily:"'IBM Plex Mono', monospace", marginTop:2 }}>● Tasks filtered to selected property</div>}
-            </div>
-            <div style={{ display:"flex", gap:6 }}>
-              {selectedPropId && <Btn variant="ghost" size="sm" onClick={() => setSelectedPropId(null)}>Clear Filter</Btn>}
-              <Btn variant="gold" size="sm" onClick={() => setShowAddProp(true)}>+ Property</Btn>
-            </div>
-          </div>
-          <div style={{ overflowY:"auto", flex:1, padding:12, display:"flex", flexDirection:"column", gap:10 }}>
-            {properties.map(prop => (
-              <PropertyCard
-                key={prop.id}
-                prop={prop}
-                allProps={properties}
-                income={income}
-                expenses={expenses}
-                isSelected={selectedPropId === prop.id}
-                onClick={() => {
-                  if (selectedPropId === prop.id) {
-                    setPropModal(prop);
-                  } else {
-                    setSelectedPropId(prop.id);
-                  }
-                }}
-              />
-            ))}
-            {properties.length === 0 && (
-              <div style={{ textAlign:"center", padding:"40px 20px", color:C.muted }}>
-                <div style={{ fontSize:32, marginBottom:12 }}>🏠</div>
-                <div style={{ fontSize:13 }}>No properties yet</div>
-                <div style={{ fontSize:11, marginTop:4 }}>Click + Property to get started</div>
-              </div>
-            )}
-            {/* Hint */}
-            <div style={{ textAlign:"center", padding:"8px 0", fontSize:9, color:C.dim, fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.1em" }}>
-              TAP TO FILTER TASKS · TAP AGAIN TO OPEN DETAILS
-            </div>
-          </div>
-        </div>
-
-        {/* ── RIGHT: Task Panel ── */}
-        <div style={{ display:"flex", flexDirection:"column", overflow:"hidden" }}>
-          {/* Board header */}
-          <div style={{ padding:"12px 16px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-            <div style={{ display:"flex", gap:4, overflowX:"auto" }}>
-              {normalizedBoards.map(b => {
-                const bColor = b.color;
-                return (
-                <button key={b.id} onClick={() => setActiveBoardId(b.id)} style={{
-                  padding:"6px 14px", borderRadius:6, border:`1px solid ${activeBoardId === b.id ? bColor : C.border}`,
-                  background: activeBoardId === b.id ? `${bColor}18` : "transparent",
-                  color: activeBoardId === b.id ? bColor : C.muted,
-                  fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans', sans-serif",
-                  letterSpacing:"0.04em", whiteSpace:"nowrap", transition:"all 0.15s",
-                }}>{b.title}</button>
-              )})}
-            </div>
-            <Btn variant="ghost" size="sm" onClick={addBoard} style={{ marginLeft:"auto", flexShrink:0 }}>+ Board</Btn>
-          </div>
-
-          {/* Task columns */}
-          <div style={{ flex:1, overflowX:"auto", padding:16 }}>
-            {activeBoard ? (
-              <div style={{ display:"flex", gap:14, height:"100%" }}>
-                {activeLists.map(list => (
-                  <KanbanList
-                    key={list.id}
-                    list={list}
-                    cards={filteredCards(list.id)}
-                    allProps={properties}
-                    onAddCard={addCard}
-                    onUpdateCard={updateCard}
-                    onDeleteCard={deleteCard}
-                  />
-                ))}
-                {/* Add List */}
-                <div style={{ minWidth:220 }}>
-                  <button
-                    onClick={() => {
-                      const title = prompt("List name:");
-                      if (!title) return;
-                      setLists(prev => [...prev, { id:uid(), boardId:activeBoardId, title, order:activeLists.length }]);
-                    }}
-                    style={{ width:"100%", padding:"10px", background:"transparent", border:`1px dashed ${C.dim}`, borderRadius:8, color:C.muted, fontSize:11, cursor:"pointer", fontFamily:"'DM Sans', sans-serif" }}
-                  >+ Add List</button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ textAlign:"center", padding:"60px 20px", color:C.muted }}>
-                <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
-                <div style={{ fontSize:13 }}>No board selected</div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Modals ── */}
-      {propModal && (
-        <PropertyModal
-          prop={propModal}
-          allProps={properties}
-          income={income}
-          expenses={expenses}
-          onClose={() => setPropModal(null)}
-          onSave={handlePropModalSave}
-          onDelete={deleteProp}
-        />
-      )}
-      {showAddProp && (
-        <AddPropertyModal onSave={addProp} onClose={() => setShowAddProp(false)} />
-      )}
-    </div>
-  );
+      `), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: `${C.surface}ee`,
+      backdropFilter: "blur(10px)",
+      borderBottom: `1px solid ${C.border}`,
+      padding: "12px 24px",
+      display: "flex",
+      alignItems: "center",
+      gap: 20,
+      position: "sticky",
+      top: 0,
+      zIndex: 100
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Playfair Display', serif",
+      fontSize: 20,
+      fontWeight: 900,
+      color: C.gold,
+      letterSpacing: "-0.02em"
+    }
+  }, "Portfolio"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Playfair Display', serif",
+      fontSize: 20,
+      fontWeight: 900,
+      color: C.text,
+      letterSpacing: "-0.02em"
+    }
+  }, "Command")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 1,
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 8,
+      overflow: "hidden",
+      marginLeft: "auto"
+    }
+  }, [{
+    label: "Portfolio",
+    value: $(totalValue)
+  }, {
+    label: "Equity",
+    value: $(totalEquity),
+    color: "#4caf82"
+  }, {
+    label: "NOI",
+    value: $(totalNOI),
+    color: totalNOI >= 0 ? "#4caf82" : "#e06c75"
+  }, {
+    label: "Properties",
+    value: properties.length
+  }].map(({
+    label,
+    value,
+    color
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: label,
+    style: {
+      padding: "8px 14px",
+      borderRight: `1px solid ${C.border}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 8,
+      color: C.muted,
+      letterSpacing: "0.12em",
+      textTransform: "uppercase",
+      fontFamily: "'IBM Plex Mono', monospace",
+      marginBottom: 2
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 800,
+      color: color || C.text,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }
+  }, value))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "420px 1fr",
+      height: "calc(100vh - 57px)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderRight: `1px solid ${C.border}`,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px 16px 10px",
+      borderBottom: `1px solid ${C.border}`,
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Playfair Display', serif",
+      fontSize: 14,
+      fontWeight: 700,
+      color: C.text
+    }
+  }, "Properties"), selectedPropId && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.gold,
+      fontFamily: "'IBM Plex Mono', monospace",
+      marginTop: 2
+    }
+  }, "\u25CF Tasks filtered to selected property")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, selectedPropId && /*#__PURE__*/React.createElement(Btn, {
+    variant: "ghost",
+    size: "sm",
+    onClick: () => setSelectedPropId(null)
+  }, "Clear Filter"), /*#__PURE__*/React.createElement(Btn, {
+    variant: "gold",
+    size: "sm",
+    onClick: () => setShowAddProp(true)
+  }, "+ Property"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowY: "auto",
+      flex: 1,
+      padding: 12,
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, properties.map(prop => /*#__PURE__*/React.createElement(PropertyCard, {
+    key: prop.id,
+    prop: prop,
+    allProps: properties,
+    income: income,
+    expenses: expenses,
+    isSelected: selectedPropId === prop.id,
+    onClick: () => {
+      if (selectedPropId === prop.id) {
+        setPropModal(prop);
+      } else {
+        setSelectedPropId(prop.id);
+      }
+    }
+  })), properties.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "40px 20px",
+      color: C.muted
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 32,
+      marginBottom: 12
+    }
+  }, "\uD83C\uDFE0"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13
+    }
+  }, "No properties yet"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      marginTop: 4
+    }
+  }, "Click + Property to get started")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "8px 0",
+      fontSize: 9,
+      color: C.dim,
+      fontFamily: "'IBM Plex Mono', monospace",
+      letterSpacing: "0.1em"
+    }
+  }, "TAP TO FILTER TASKS \xB7 TAP AGAIN TO OPEN DETAILS"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 16px",
+      borderBottom: `1px solid ${C.border}`,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      overflowX: "auto"
+    }
+  }, normalizedBoards.map(b => {
+    const bColor = b.color;
+    return /*#__PURE__*/React.createElement("button", {
+      key: b.id,
+      onClick: () => setActiveBoardId(b.id),
+      style: {
+        padding: "6px 14px",
+        borderRadius: 6,
+        border: `1px solid ${activeBoardId === b.id ? bColor : C.border}`,
+        background: activeBoardId === b.id ? `${bColor}18` : "transparent",
+        color: activeBoardId === b.id ? bColor : C.muted,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: "pointer",
+        fontFamily: "'DM Sans', sans-serif",
+        letterSpacing: "0.04em",
+        whiteSpace: "nowrap",
+        transition: "all 0.15s"
+      }
+    }, b.title);
+  })), /*#__PURE__*/React.createElement(Btn, {
+    variant: "ghost",
+    size: "sm",
+    onClick: addBoard,
+    style: {
+      marginLeft: "auto",
+      flexShrink: 0
+    }
+  }, "+ Board")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowX: "auto",
+      padding: 16
+    }
+  }, activeBoard ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      height: "100%"
+    }
+  }, activeLists.map(list => /*#__PURE__*/React.createElement(KanbanList, {
+    key: list.id,
+    list: list,
+    cards: filteredCards(list.id),
+    allProps: properties,
+    onAddCard: addCard,
+    onUpdateCard: updateCard,
+    onDeleteCard: deleteCard
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: 220
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const title = prompt("List name:");
+      if (!title) return;
+      setLists(prev => [...prev, {
+        id: uid(),
+        boardId: activeBoardId,
+        title,
+        order: activeLists.length
+      }]);
+    },
+    style: {
+      width: "100%",
+      padding: "10px",
+      background: "transparent",
+      border: `1px dashed ${C.dim}`,
+      borderRadius: 8,
+      color: C.muted,
+      fontSize: 11,
+      cursor: "pointer",
+      fontFamily: "'DM Sans', sans-serif"
+    }
+  }, "+ Add List"))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "60px 20px",
+      color: C.muted
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 32,
+      marginBottom: 12
+    }
+  }, "\uD83D\uDCCB"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13
+    }
+  }, "No board selected"))))), propModal && /*#__PURE__*/React.createElement(PropertyModal, {
+    prop: propModal,
+    allProps: properties,
+    income: income,
+    expenses: expenses,
+    onClose: () => setPropModal(null),
+    onSave: handlePropModalSave,
+    onDelete: deleteProp
+  }), showAddProp && /*#__PURE__*/React.createElement(AddPropertyModal, {
+    onSave: addProp,
+    onClose: () => setShowAddProp(false)
+  }));
 }
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(React.createElement(App));
-  </script>
+</script>
 </body>
 </html>
