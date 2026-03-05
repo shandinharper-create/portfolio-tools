@@ -672,17 +672,34 @@ function App() {
               </div>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginTop:18, paddingTop:18, borderTop:"1px solid #1e1e26" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginTop:18, paddingTop:18, borderTop:"1px solid #1e1e26" }}>
               {[
-                { l:"Purchase Price", v:currency(selProp.purchasePrice), c:"#eeebf0" },
-                { l:"Market Value",   v:currency(selProp.marketValue),   c:"#c9a96e" },
-                { l:"Equity",         v:currency(selEquity),             c:selEquity>=0?"#c9a96e":"#d96b6b" },
-                { l:"Monthly Income", v:currency(selInc.reduce((s,i)=>s+i.amount,0)), c:"#5cb87a" },
-                { l:"Net Cash Flow",  v:currency(selNOI),                c:selNOI>=0?"#5cb87a":"#d96b6b" },
+                (() => {
+                  const now       = new Date();
+                  const curMonth  = now.toISOString().slice(0,7); // "YYYY-MM"
+                  const curYear   = now.getFullYear().toString();  // "YYYY"
+                  const moInc  = selInc.filter(i => i.date && i.date.startsWith(curMonth)).reduce((s,i)=>s+i.amount,0);
+                  const moExp  = selExp.filter(e => e.date && e.date.startsWith(curMonth)).reduce((s,e)=>s+e.amount,0);
+                  const ytdInc = selInc.filter(i => i.date && i.date.startsWith(curYear)).reduce((s,i)=>s+i.amount,0);
+                  const ytdExp = selExp.filter(e => e.date && e.date.startsWith(curYear)).reduce((s,e)=>s+e.amount,0);
+                  const ytdNOI = ytdInc - ytdExp;
+                  return [
+                    { l:"Purchase Price",  v:currency(selProp.purchasePrice), c:"#eeebf0" },
+                    { l:"Market Value",    v:currency(selProp.marketValue),   c:"#c9a96e" },
+                    { l:"Equity",          v:currency(selEquity),             c:selEquity>=0?"#c9a96e":"#d96b6b" },
+                    { l:"Mo. Income",      v:currency(moInc),                 c:"#5cb87a",  hint:"This month" },
+                    { l:"Mo. Expenses",    v:currency(moExp),                 c:"#d96b6b",  hint:"This month" },
+                    { l:"YTD Income",      v:currency(ytdInc),                c:"#5cb87a",  hint:curYear },
+                    { l:"YTD Expenses",    v:currency(ytdExp),                c:"#d96b6b",  hint:curYear },
+                    { l:"YTD Net",         v:currency(ytdNOI),                c:ytdNOI>=0?"#5cb87a":"#d96b6b", hint:"Income - Expenses" },
+                  ];
+                })()
               ].map(s => (
                 <div key={s.l}>
                   <div style={{ fontSize:9, color:"#5a5868", textTransform:"uppercase", letterSpacing:"0.1em", fontFamily:"'IBM Plex Mono',monospace" }}>{s.l}</div>
                   <div style={{ fontSize:15, fontWeight:800, marginTop:4, color:s.c }}>{s.v}</div>
+                  {s.hint && <div style={{ fontSize:9, color:"#5a5868", marginTop:2, fontFamily:"'IBM Plex Mono',monospace" }}>{s.hint}</div>}
+                  <div style={{display:"none"}}>{/* */}</div>
                 </div>
               ))}
             </div>
